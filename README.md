@@ -2,4 +2,6 @@
 
 A browser-based virtual tabletop for D&D. Open the page, enter your name, PIN and table code from your DM.
 
-The PeerJS library bundled in index.html is under its own license (peerjs-LICENSE.txt).
+The DM loads their own rules packs (spells, classes, creatures) from their own computer; none are stored here.
+
+See CREDITS.md for the libraries, fonts, textures and sounds used, and their licenses.
