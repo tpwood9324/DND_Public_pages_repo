@@ -1849,6 +1849,7 @@ body.theme-necromancer {
       </div>
       <div id="pickBanner" class="hiddenRow">
         <div id="pickText"></div>
+        <div id="pickReachNote" class="muted small hiddenRow"></div>
         <label id="pickModeRow" class="pickMode hiddenRow">Roll with
           <select id="pickMode">
             <option value="normal">Normal</option>
@@ -6380,6 +6381,7 @@ function rulesEffectTone(effect) {
   if (effect.against === "adv" || effect.noHeal === true || effect.turnDamage || Array.isArray(effect.vulnerable)) return "bane";
   if (Array.isArray(effect.failSaves) || Array.isArray(effect.saveDis)) return "bane";
   if (typeof effect.acBonus === "number" && effect.acBonus < 0) return "bane";
+  if (Array.isArray(effect.resist) && effect.resist.length > 0) return "boon";   // Rage, Stoneskin: resistances help
   if (effect.info === true) return "neutral";
   return "boon";
 }
@@ -6387,6 +6389,10 @@ function rulesEffectTone(effect) {
 // How long the effect lasts, in words.
 function rulesEffectRemaining(effect) {
   const parts = [];
+  // A Rage lasts to the end of the Barbarian's next turn unless extended; the 10-minute cap is only the most it can ever run.
+  if (effect.name === "Rage") {
+    return "until the end of its next turn unless extended (attack, forced save or Bonus Action)" + (typeof effect.roundsLeft === "number" ? "; 10 minutes at most (" + effect.roundsLeft + " rounds)" : "");
+  }
   if (typeof effect.roundsLeft === "number") parts.push(effect.roundsLeft + (effect.roundsLeft === 1 ? " round left" : " rounds left"));
   if (effect.expires) {
     const owner = hostFindToken(effect.expires.tokenId);
@@ -6414,8 +6420,17 @@ function rulesEffectRemaining(effect) {
 // Helpful effects come first, neutral ones in the middle, harmful ones last; the order they were added in is kept inside each group.
 function rulesStatusList(token) {
   const order = { boon: 0, neutral: 1, bane: 2 };
-  const list = token.effects.filter(function (effect) { return effect.permanent !== true; }).map(function (effect, index) {
-    return { id: effect.id, name: effect.name, tone: rulesEffectTone(effect), remaining: rulesEffectRemaining(effect), note: effect.note || "", index: index };
+  // Rage is one status: its damage bonus (kept as a separate "Rage damage" effect) is folded into the Rage line, which says what Rage does.
+  const raging = token.effects.some(function (effect) { return effect.name === "Rage"; });
+  const rageBonus = token.effects.find(function (effect) { return effect.name === "Rage damage"; });
+  const list = token.effects.filter(function (effect) { return effect.permanent !== true && !(raging && effect.name === "Rage damage"); }).map(function (effect, index) {
+    let note = effect.note || "";
+    if (effect.name === "Rage") {
+      const types = Array.isArray(effect.resist) && effect.resist.length > 0 ? effect.resist.map(function (type) { return type.charAt(0).toUpperCase() + type.slice(1); }).join(", ") : "Bludgeoning, Piercing, Slashing";
+      const bonus = rageBonus && rageBonus.dice ? "+" + rageBonus.dice + " damage on Strength weapon and Unarmed Strike hits" : "the Rage Damage bonus on Strength weapon and Unarmed Strike hits";
+      note = "Resistance to " + types + " damage; " + bonus + "; Advantage on Strength checks and saving throws; can't cast spells or keep Concentration.";
+    }
+    return { id: effect.id, name: effect.name, tone: rulesEffectTone(effect), remaining: rulesEffectRemaining(effect), note: note, index: index };
   });
   list.sort(function (a, b) { return order[a.tone] - order[b.tone] || a.index - b.index; });
   // Spells set aside by an Antimagic Field: listed so nobody forgets them, without an End button.
@@ -6627,6 +6642,7 @@ function ecoSpendCast(token, spell, action) {
 function ecoOnAttack(attacker, attack) {
   if (!ecoOn() || !attacker.character || attacker.kind !== "player") return;
   // The Light property's extra attack (the off-hand weapon) costs the Bonus Action; Nick mastery makes one per turn part of the Attack action.
+  if (attack.id === "weapon_cleave") return;   // Cleave: an extra attack, not part of the Attack action
   if (attack.id === "weapon_off") {
     if (attack.mastery === "nick" && !rulesTurnUsed(attacker, "mastery_nick")) rulesTurnMark(attacker, "mastery_nick");
     else ecoState(attacker).bonus = true;
@@ -7495,7 +7511,7 @@ function rulesRangedCheck(attacker, attack, target, isDm) {
   }
   const feet = areaDistanceFeet(attacker, target);
   const longFt = attack.longRangeFt > 0 ? attack.longRangeFt : attack.rangeFt;
-  if (feet > longFt && !isDm) return { error: attack.name + " can't reach " + feet + " feet (long range " + longFt + ")." };
+  if (feet > longFt && (typeof ecoBinds === "function" ? ecoBinds(attacker, isDm) : !isDm)) return { error: attack.name + " can't reach " + feet + " feet (long range " + longFt + ")." };
   // Sharpshooter: long range and nearby enemies impose no Disadvantage on Ranged weapon attacks. Crossbow Expert: nearby enemies
   // impose none on crossbow attacks.
   const sharp = typeof featHas === "function" && featHas(attacker, "Sharpshooter");
@@ -16895,6 +16911,13 @@ function creatureAttackFrom(item) {
     limit: item.limit || null,
     targets: item.kind === "save" ? 6 : 1
   };
+  // Reach and range from the stat block: a melee attack reaches its "reach" (5 feet unless it says more); a ranged one has its range.
+  if (item.kind === "attack" && Array.isArray(item.rangeFeet) && item.rangeFeet[0] > 0) {
+    attack.rangeFt = item.rangeFeet[0];
+    attack.longRangeFt = item.rangeFeet[1] || item.rangeFeet[0];
+  } else if (item.kind === "attack" && item.range !== "ranged") {
+    attack.reach = Math.max(1, Math.ceil((typeof item.reach === "number" ? item.reach : 5) / 5));
+  }
   // A condition the hit or failed save puts on the target, shown on the target as a note (the DM removes it).
   if (item.condition && item.condition.name) {
     attack.effect = creatureConditionEffect(item);
@@ -17693,7 +17716,7 @@ RULES_ATTACK_HOOKS.push(function (token, list) {
     id: "unarmed_strike", name: "Unarmed Strike", kind: "attack",
     bonus: rulesProfBonus(rulesTotalLevel(token.character)) + mod,
     damage: mod === 0 ? damage : damage + sign, damageType: "bludgeoning", dc: 10, ability: "str",
-    half: false, targets: 1, repeat: false, effect: null, computed: true, rerollOne: brawler
+    half: false, targets: 1, repeat: false, effect: null, computed: true, rerollOne: brawler, reach: 1
   });
 });
 
@@ -18168,6 +18191,7 @@ RULES_ATTACK_HOOKS.push(function (token, list) {
       damageType: base.weapon.type, dc: 10, ability: "str", half: false, targets: 1, repeat: false, effect: null,
       note: bits.join("  ·  ") + "  ·  versatile: " + (base.weapon.versatile || base.weapon.dice) + " with two hands", computed: true,
       rangeFt: 0, longRangeFt: 0, mastery: "", masteryMod: mod, masteryDc: 8 + mod + (trained ? profBonus : 0), meleeWeapon: true, finesse: false,
+      reach: 1,
       extras: extras
     });
   }
@@ -18233,7 +18257,7 @@ RULES_ATTACK_HOOKS.push(function (token, list) {
     const useMod = offMod + flat;
     list.push({
       extras: extras,
-      reach: weapon.melee && weapon.reach > 5 ? Math.ceil(weapon.reach / 5) : undefined,
+      reach: weapon.melee ? Math.max(1, Math.ceil((weapon.reach || 5) / 5)) : undefined,   // squares; a plain melee weapon reaches 5 feet
       id: "weapon_" + slot, name: equipEntryName(held.entry) + (slot === "off" ? " (off hand)" : ""), kind: "attack",
       bonus: attackBonus,
       minDie: minDie,
@@ -18245,8 +18269,50 @@ RULES_ATTACK_HOOKS.push(function (token, list) {
       heavyOrVersatile: weapon.props.indexOf("heavy") !== -1 || !!weapon.versatile,
       magical: !!(held.entry && (held.entry.magicId || held.entry.plus > 0))
     });
+    // Cleave: after a melee hit with this weapon, one extra attack against a second creature within 5 feet of the first. Its damage
+    // has no ability modifier (unless the modifier is negative); once per turn; not part of the Attack action.
+    const ready = token.cleaveReady;
+    if (masteryOn && weapon.mastery === "cleave" && weapon.melee && ready && ready.slot === slot && equipCleaveOpen(token)) {
+      const first = state.tokens.find(function (other) { return other.id === ready.targetId; });
+      const cleaveMod = Math.min(0, mod) + flat;
+      list.push({
+        extras: extras,
+        reach: Math.max(1, Math.ceil(weapon.reach / 5)),
+        id: "weapon_cleave", name: "Cleave (" + equipEntryName(held.entry) + ")", kind: "attack",
+        bonus: attackBonus, minDie: minDie,
+        damage: cleaveMod === 0 ? dice : dice + (cleaveMod > 0 ? "+" : "") + cleaveMod,
+        damageType: weapon.type, dc: 10, ability: "str", half: false, targets: 1, repeat: false, effect: null,
+        note: "Cleave: a second creature within 5 ft of " + (first ? first.name : "the first target") + " and in your reach  ·  no ability modifier on damage  ·  once per turn, not part of the Attack action",
+        computed: true, rangeFt: 0, longRangeFt: 0, mastery: "", masteryMod: mod, masteryDc: 8 + mod + (trained ? profBonus : 0),
+        meleeWeapon: true, finesse: weapon.props.indexOf("finesse") !== -1, cleave: true,
+        magical: !!(held.entry && (held.entry.magicId || held.entry.plus > 0))
+      });
+    }
   }
 });
+
+// A Cleave offered by a hit stays open until it is used, until that turn ends, or until another Cleave is used this turn.
+function equipCleaveOpen(token) {
+  const ready = token.cleaveReady;
+  if (!ready) return false;
+  if (rulesTurnUsed(token, "mastery_cleave")) return false;
+  return ready.stamp === rulesTurnStamp();
+}
+
+// Checks the Cleave target: not the first creature, within 5 feet of it. Returns an error text or null. On success the Cleave
+// is used up for the turn.
+function equipCleaveUse(attacker, targets, dryRun) {
+  if (!equipCleaveOpen(attacker)) return "Cleave is not available: hit a creature with your Cleave weapon first (once per turn).";
+  if (targets.length !== 1) return "Cleave attacks one creature.";
+  const first = state.tokens.find(function (other) { return other.id === attacker.cleaveReady.targetId; });
+  const target = targets[0];
+  if (target.id === attacker.cleaveReady.targetId) return "Cleave must target a different creature than the one you hit.";
+  if (first && footprintSquares(first, target) > 1) return target.name + " is not within 5 feet of " + first.name + ".";
+  if (dryRun) return null;
+  rulesTurnMark(attacker, "mastery_cleave");
+  delete attacker.cleaveReady;
+  return null;
+}
 
 // ---- Throwing a weapon: one "Throw a Weapon" entry lists every Thrown weapon in the pack ----
 function equipThrowables(character) {
@@ -18354,9 +18420,9 @@ function rulesMasteryHit(attacker, attack, target, dealt) {
     }
     return text;
   }
-  if (m === "cleave" && attack.meleeWeapon && !rulesTurnUsed(attacker, "mastery_cleave")) {
-    rulesTurnMark(attacker, "mastery_cleave");
-    return "Cleave: you may attack a second creature within 5 ft of " + target.name + " (damage without your ability modifier, once per turn)";
+  if (m === "cleave" && attack.meleeWeapon && attack.cleave !== true && !rulesTurnUsed(attacker, "mastery_cleave")) {
+    attacker.cleaveReady = { targetId: target.id, slot: attack.id === "weapon_off" ? "off" : "main", stamp: rulesTurnStamp() };
+    return "Cleave: " + attacker.name + " can attack a second creature within 5 ft of " + target.name + " (the Cleave attack is now in the Attacks list)";
   }
   return "";
 }
@@ -23421,6 +23487,9 @@ function cleanAttack(input) {
     heavy: kind === "attack" && input.heavy === true,     // a Heavy weapon (Great Weapon Master)
     effect: effect,                                  // put on targets it hits (or that fail the save), or null
     // A hit that also forces a saving throw before the effect lands (Pit Fiend's Bite, Cockatrice's Petrifying Bite).
+    reach: kind === "attack" && typeof input.reach === "number" ? cleanInt(input.reach, 1, 24, 1) : undefined,   // squares
+    rangeFt: kind === "attack" && typeof input.rangeFt === "number" ? cleanInt(input.rangeFt, 0, 2000, 0) : undefined,
+    longRangeFt: kind === "attack" && typeof input.longRangeFt === "number" ? cleanInt(input.longRangeFt, 0, 4000, 0) : undefined,
     riderSave: kind === "attack" && input.riderSave && typeof input.riderSave === "object" && RULES_ABILITIES.indexOf(input.riderSave.ability) !== -1 && typeof input.riderSave.dc === "number" ? { ability: input.riderSave.ability, dc: cleanInt(input.riderSave.dc, 1, 40, 10) } : null
   };
 }
@@ -24751,7 +24820,12 @@ function hostHandleActionRaw(action, name, isDm) {
       targets.push(target);
     }
     // A melee attack with a reach (in squares: 1 = 5 feet, 2 = 10 feet for a Chain Arm).
-    if (typeof attack.reach === "number" && attack.reach >= 1 && !isDm) {
+    if (attack.id === "weapon_cleave" && typeof equipCleaveUse === "function") {
+      const cleaveError = equipCleaveUse(attacker, targets, action.dryRun === true);
+      if (cleaveError) return cleaveError;
+    }
+    const heldToReach = typeof ecoBinds === "function" ? ecoBinds(attacker, isDm) : !isDm;
+    if (typeof attack.reach === "number" && attack.reach >= 1 && heldToReach) {
       for (const target of targets) {
         if (footprintSquares(attacker, target) > attack.reach) return attack.name + " needs a target within " + attack.reach * 5 + " feet.";
       }
@@ -30292,6 +30366,7 @@ function draw() {
   // Enhanced graphics (gfx_enhanced.js): the GPU draws the world; this canvas draws only what sits on top of it.
   if (enhanced) {
     gfxDraw(cell);
+    drawPickReach(cell);
     drawAreaTemplate(cell);
     drawPickPoint(cell);
     if (typeof drawRoute === "function") drawRoute(cell);
@@ -30322,6 +30397,7 @@ function draw() {
   drawTerrain(cell);
   drawWalls(cell);
   drawZones(cell);
+  drawPickReach(cell);
   drawAreaTemplate(cell);
   drawPickPoint(cell);
   for (const token of view.tokens) {
@@ -31264,6 +31340,122 @@ function pickPointTap(cell) {
   draw();
 }
 
+// ---- Reach overlay: while picking targets, the squares the chosen attack can reach ----
+// Melee: the squares within the attack's reach. Ranged: green within normal range, amber in long range (Disadvantage), nothing beyond
+// it. A square behind total cover (a wall in the way) is left out. When an enemy stands next to the attacker, every ranged square is
+// amber (a ranged attack with a hostile creature within 5 feet has Disadvantage). Worked out once per pick and attacker position.
+let pickReachCache = null;
+
+// What the pick reaches: { meleeFt } or { normalFt, longFt }, or null when it has no distance to show.
+function pickReachInfo(attacker) {
+  if (pick === null || pick.kind !== "attack" || !attacker) return null;
+  if (pick.attackKind === "spell") {
+    if (pick.area || pick.point || typeof pick.rangeFeet !== "number" || pick.rangeFeet <= 0) return null;
+    return pick.rangeFeet <= 5 ? { meleeFt: 5 } : { normalFt: pick.rangeFeet, longFt: pick.rangeFeet };
+  }
+  if (pick.attackKind !== "attack" && pick.attackKind !== "multi") return null;
+  const attacks = Array.isArray(attacker.attacks) ? attacker.attacks : [];
+  const chosen = attacks.find(function (item) { return item.id === pick.attackId; });
+  if (!chosen) return null;
+  // A Multiattack reaches as far as its longest part.
+  const parts = chosen.kind === "multi" && Array.isArray(chosen.parts)
+    ? chosen.parts.map(function (part) { return attacks.find(function (item) { return item.name === part.name; }); }).filter(function (item) { return !!item; })
+    : [chosen];
+  let meleeFt = 0;
+  let normalFt = 0;
+  let longFt = 0;
+  for (const part of parts) {
+    if (part.rangeFt > 0) {
+      normalFt = Math.max(normalFt, part.rangeFt);
+      longFt = Math.max(longFt, part.longRangeFt > 0 ? part.longRangeFt : part.rangeFt);
+    } else if (typeof part.reach === "number" && part.reach >= 1) {
+      meleeFt = Math.max(meleeFt, part.reach * 5);
+    }
+  }
+  if (normalFt > 0) return { normalFt: normalFt, longFt: longFt, meleeFt: meleeFt };
+  if (meleeFt > 0) return { meleeFt: meleeFt };
+  return null;
+}
+
+// True when a creature hostile to the attacker stands within 5 feet of it (ranged attacks then have Disadvantage).
+function pickEnemyAdjacent(attacker) {
+  const side = attacker.kind === "player" || typeof attacker.summonOf === "number";
+  return view.tokens.some(function (other) {
+    if (other.id === attacker.id || other.dead || other.hidden) return false;
+    const otherSide = other.kind === "player" || typeof other.summonOf === "number";
+    return otherSide !== side && footprintSquares(attacker, other) <= 1;
+  });
+}
+
+function pickReachSquares() {
+  if (pick === null) return null;
+  const attacker = view.tokens.find(function (token) { return token.id === pick.attackerId; });
+  const info = pickReachInfo(attacker);
+  if (!info) return null;
+  const key = pick.attackerId + "|" + pick.attackId + "|" + attacker.x + "," + attacker.y + "|" + JSON.stringify(info) + "|" + view.tokens.length + "|" + JSON.stringify(view.walls || {}).length;
+  if (pickReachCache && pickReachCache.key === key) return pickReachCache;
+  const cols = Math.ceil(view.map.width / view.map.cellSize);
+  const rows = Math.ceil(view.map.height / view.map.cellSize);
+  const farFt = Math.max(info.meleeFt || 0, info.longFt || 0);
+  const span = Math.ceil(farFt / 5) + sizeTiles(attacker);
+  const walls = typeof rulesWallsAny === "function" && rulesWallsAny();
+  const crowded = info.normalFt > 0 && pickEnemyAdjacent(attacker);
+  const near = [];
+  const far = [];
+  for (let x = Math.max(0, attacker.x - span); x <= Math.min(cols - 1, attacker.x + span); x++) {
+    for (let y = Math.max(0, attacker.y - span); y <= Math.min(rows - 1, attacker.y + span); y++) {
+      if (typeof tokenCovers === "function" && tokenCovers(attacker, x, y)) continue;
+      const spot = { id: -1, x: x, y: y, size: "Medium", effects: [] };
+      const feet = areaDistanceFeet(attacker, spot);
+      let band = "";
+      if (info.meleeFt && feet <= info.meleeFt) band = "near";
+      if (info.normalFt > 0) {
+        if (feet <= info.normalFt) band = crowded && band === "" ? "far" : (band || "near");
+        else if (feet <= info.longFt && band === "") band = "far";
+      }
+      if (band === "") continue;
+      if (walls && rulesCoverDegree(attacker, spot) === "total") continue;
+      (band === "near" ? near : far).push([x, y]);
+    }
+  }
+  pickReachCache = { key: key, near: near, far: far, info: info, crowded: crowded };
+  return pickReachCache;
+}
+
+function drawPickReach(cell) {
+  const reach = pickReachSquares();
+  if (!reach) return;
+  ctx.save();
+  ctx.lineWidth = 1 / camera.zoom;
+  // Colour-blind mode: blue instead of green, so it stands apart from the amber.
+  const cb = document.body.classList.contains("cb");
+  ctx.fillStyle = cb ? "rgba(86, 180, 233, 0.22)" : "rgba(76, 200, 110, 0.20)";
+  ctx.strokeStyle = cb ? "rgba(86, 180, 233, 0.6)" : "rgba(76, 200, 110, 0.55)";
+  for (const square of reach.near) {
+    ctx.fillRect(square[0] * cell, square[1] * cell, cell, cell);
+    ctx.strokeRect(square[0] * cell + 0.5 / camera.zoom, square[1] * cell + 0.5 / camera.zoom, cell - 1 / camera.zoom, cell - 1 / camera.zoom);
+  }
+  ctx.fillStyle = "rgba(240, 170, 40, 0.20)";
+  ctx.strokeStyle = "rgba(240, 170, 40, 0.55)";
+  for (const square of reach.far) {
+    ctx.fillRect(square[0] * cell, square[1] * cell, cell, cell);
+    ctx.strokeRect(square[0] * cell + 0.5 / camera.zoom, square[1] * cell + 0.5 / camera.zoom, cell - 1 / camera.zoom, cell - 1 / camera.zoom);
+  }
+  ctx.restore();
+}
+
+// The line under the pick banner that explains the colours.
+function pickReachText() {
+  const reach = pickReachSquares();
+  if (!reach) return "";
+  const info = reach.info;
+  const near = document.body.classList.contains("cb") ? "Blue" : "Green";
+  if (!(info.normalFt > 0)) return near + ": in reach (" + info.meleeFt + " ft).";
+  if (reach.crowded) return "An enemy is within 5 ft of you: ranged attacks have Disadvantage. Amber: in range (" + info.normalFt + (info.longFt > info.normalFt ? "/" + info.longFt : "") + " ft)" + (info.meleeFt ? "; " + near.toLowerCase() + ": in melee reach" : "") + ".";
+  if (info.longFt > info.normalFt) return near + ": normal range (" + info.normalFt + " ft). Amber: long range, Disadvantage (to " + info.longFt + " ft).";
+  return near + ": in range (" + info.normalFt + " ft).";
+}
+
 function drawPickPoint(cell) {
   if (pick === null || !pick.point || !pick.origin) return;
   ctx.save();
@@ -31418,6 +31610,9 @@ function renderPick() {
   if (pick === null) return;
 
   const count = pickedIds.length;
+  const reachText = pickReachText();
+  byId("pickReachNote").textContent = reachText;
+  show(byId("pickReachNote"), reachText !== "");
   show(byId("pickModeRow"), pick.kind === "attack" && (pick.attackKind === "attack" || pick.attackKind === "spell"));
   renderPickRiders();
   show(byId("pickClear"), pick.kind === "attack" && pick.repeat);
@@ -32667,7 +32862,7 @@ function renderStatuses() {
         row.appendChild(end);
       }
       if (status.note !== "") row.title = status.note;
-      if (status.id === "") {   // an aura or area: show what it does in plain text (a tooltip does not exist on a phone)
+      if (status.note !== "") {   // what it does, in plain text (a tooltip does not exist on a phone)
         const why = document.createElement("div");
         why.className = "statusWhy";
         why.textContent = status.note;
