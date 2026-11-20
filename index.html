@@ -108,10 +108,22 @@ label.checkRow input { width: 18px; height: 18px; }
 #tableScreen {
   height: 100%;
   display: grid;
-  grid-template-columns: 1fr 330px;
+  /* The side panel's width is dragged with #sideResize and kept per device (--side-width, app.js). */
+  grid-template-columns: minmax(0, 1fr) var(--side-width, 330px);
   grid-template-rows: auto 1fr;
   grid-template-areas: "top top" "map side";
 }
+/* The handle on the side panel's left edge: drag to make the panel wider or narrower, double-click for the usual width. */
+#sideResize {
+  grid-area: side;
+  justify-self: start;
+  width: 10px;
+  margin-left: -5px;
+  cursor: ew-resize;
+  z-index: 6;
+  touch-action: none;
+}
+#sideResize:hover, #sideResize.dragging { background: linear-gradient(90deg, transparent 3px, rgba(226, 165, 75, 0.6) 3px, rgba(226, 165, 75, 0.6) 6px, transparent 6px); }
 
 #topBar {
   grid-area: top;
@@ -213,6 +225,15 @@ label.checkRow input { width: 18px; height: 18px; }
 .attackRow .attackInfo { flex: 1; min-width: 0; }
 .attackRow .attackTitle { font-weight: 600; overflow-wrap: anywhere; }
 .attackRow .attackNumbers { color: #9a9890; font-size: 13px; }
+.attackRow .attackFold { cursor: pointer; }
+.attackGroupHead { margin-top: 8px; }
+.attackRow .attackFold::before { content: "▸ "; display: inline-block; width: 1em; opacity: 0.7; }
+.attackRow.open .attackFold::before { content: "▾ "; }
+.attackRow:has(.attackFold):not(.open) .attackNumbers,
+.attackRow:not(.open) .attackUpcast,
+.attackRow:has(.attackFold):not(.open) .attackRemove { display: none; }
+.attackRow .attackUpcast { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-top: 4px; }
+.attackRow .attackUpcast select { width: auto; }
 .topGap { margin-top: 8px; }
 
 #diceWindow {
@@ -322,12 +343,14 @@ label.checkRow input { width: 18px; height: 18px; }
 
 .partyRow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   padding: 6px 0;
   border-bottom: 1px solid #30333c;
 }
-.partyRow .partyInfo { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+/* The name keeps at least 150 px; when the buttons do not fit beside it they wrap onto their own line. */
+.partyRow .partyInfo { flex: 1 1 150px; min-width: 0; overflow-wrap: break-word; }
 .partyRow .partyOwner { color: #9a9890; font-size: 13px; }
 #diceRow {
   display: flex;
@@ -427,6 +450,7 @@ label.checkRow input { width: 18px; height: 18px; }
     grid-template-areas: "top" "map" "side";
   }
   #sidePanel { border-left: none; border-top: 1px solid #3a3d47; }
+  #sideResize { display: none; }
   #whoLabel { display: none; }
 }
 
@@ -471,7 +495,7 @@ label.checkRow input { width: 18px; height: 18px; }
   padding: 6px 0;
   border-bottom: 1px solid #30333c;
 }
-.playerRow .playerInfo { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.playerRow .playerInfo { flex: 1 1 150px; min-width: 0; overflow-wrap: break-word; }
 .playerRow .playerPin { font-size: 20px; font-weight: bold; letter-spacing: 0.15em; color: #e2a54b; }
 .playerRow .playerState { color: #9a9890; font-size: 13px; }
 .playerRow .playerState.online { color: #5cb85c; }
@@ -506,7 +530,38 @@ label.checkRow input { width: 18px; height: 18px; }
 .levelList { max-height: 260px; overflow-y: auto; margin: 6px 0; }
 .levelOption { display: flex; gap: 8px; align-items: center; padding: 3px 0; }
 .levelOptionText { margin: 0 0 4px 26px; }
+.levelList.levelListFull { max-height: none; overflow: visible; }
+.levelOption.picked { color: #4caf50; }
+.levelListFull .levelOption { font-weight: 700; font-size: 1.05em; margin-top: 10px; }
+.levelOptionDetails { margin: 2px 0 8px 26px; padding: 6px 10px; border-left: 2px solid #3a3d47; font-size: 0.92em; line-height: 1.4; }
+.levelOptionSummary { font-style: italic; margin-bottom: 4px; }
+.levelDetailLine { margin: 2px 0; }
+.levelMissing { margin-top: 12px; padding: 8px 10px; border-left: 3px solid #d9a441; background: rgba(217,164,65,0.08); }
+.levelMissing .fieldRow { flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.levelMissing .fieldRow button { flex: 0 0 auto; white-space: nowrap; }
+.levelHave { margin: 6px 0 8px; padding: 6px 8px; border-left: 3px solid #4caf50; background: rgba(76,175,80,0.08); }
 .levelOptionRow { margin-bottom: 8px; }
+.subclassGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 8px; }
+.subclassCard { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: left; padding: 12px; border: 2px solid #3a3d47; border-radius: 10px; background: rgba(255,255,255,0.03); color: inherit; font: inherit; cursor: pointer; height: auto; white-space: normal; text-transform: none; letter-spacing: normal; }
+.subclassCard:hover { border-color: #888; }
+.subclassCard.picked { border-color: #4caf50; background: rgba(76,175,80,0.14); box-shadow: 0 0 0 1px #4caf50; }
+.subclassEmblem { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 700; border: 2px solid #d9a441; color: #d9a441; background: radial-gradient(circle, rgba(217,164,65,0.18), rgba(0,0,0,0.35)); }
+.subclassCard.picked .subclassEmblem { border-color: #4caf50; color: #4caf50; }
+.subclassName { font-weight: 700; text-align: center; }
+.subclassText { font-size: 0.88em; line-height: 1.4; opacity: 0.9; align-self: stretch; }
+.abilityChips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+.abilityChip { padding: 3px 9px; border: 1px solid #4caf50; border-radius: 12px; font-weight: 600; }
+.abilityChip.used { opacity: 0.6; border-color: #666; }
+.abilityAssign { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.abilityCell { display: flex; flex-direction: column; gap: 4px; padding: 8px; border: 1px solid #3a3d47; border-radius: 8px; }
+.abilityCell select { width: 100%; }
+.abilityCell.assigned { border-color: #4caf50; }
+.abilityCell.primary { box-shadow: inset 0 0 0 1px #d9a441; }
+.abilityCellName { font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.stepper { display: flex; align-items: center; gap: 8px; }
+.stepper button { min-width: 34px; }
+.stepValue { min-width: 2em; text-align: center; font-weight: 700; }
+.abilityMain { font-size: 0.7rem; padding: 1px 6px; border-radius: 8px; background: #d9a441; color: #1a1a1a; }
 
 /* Harvest prompts */
 #harvestBox { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 60; display: flex; flex-direction: column; gap: 8px; max-width: min(560px, 94vw); }
@@ -579,15 +634,16 @@ label.checkRow input { width: 18px; height: 18px; }
 /* Statuses panel */
 .statusGroup { margin: 6px 0 10px; }
 .statusToken { font-weight: 600; margin-bottom: 3px; }
-.statusRow { display: flex; gap: 6px; align-items: baseline; padding: 2px 0; border-bottom: 1px solid #2a2a33; }
+.statusRow { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 4px 0; border-bottom: 1px solid #2a2a33; }
 .statusRow .statusIcon { width: 1.1em; flex: none; }
-.statusRow .statusName { font-weight: 600; flex: none; }
+.statusRow .statusName { font-weight: 600; flex: 0 1 auto; min-width: 0; overflow-wrap: break-word; }
 .statusRow .statusLeft { color: #b9b6ad; font-size: 0.9em; min-width: 0; }
 .statusRow.bane .statusIcon, .statusRow.bane .statusName { color: #ff7b6e; }
 .statusRow.boon .statusIcon, .statusRow.boon .statusName { color: #5fd08a; }
 .statusRow.neutral .statusIcon { color: #b9b6ad; }
 .statusNone { color: #b9b6ad; }
-.statusRow .statusLeft { flex: 1; }
+/* How long it lasts goes on its own line under the name, so the End button never covers it. */
+.statusRow .statusLeft { order: 10; flex: 1 1 100%; padding-left: calc(1.1em + 6px); }
 .statusRow .statusEnd { min-height: 26px; padding: 1px 8px; flex: none; margin-left: auto; }
 
 /* Planned move: the bar over the map with the distance so far and Confirm, Undo and Cancel. */
@@ -673,8 +729,8 @@ body.text-xlarge #charWindow, body.text-xlarge .modalCard, body.text-xlarge .joi
 body.text-xlarge #routeBar { zoom: 1.3; }
 /* The side panel's column grows with it, so its contents keep their room. */
 @media (min-width: 761px) {
-  body.text-large #tableScreen { grid-template-columns: 1fr 380px; }
-  body.text-xlarge #tableScreen { grid-template-columns: 1fr 430px; }
+  body.text-large #tableScreen { grid-template-columns: minmax(0, 1fr) calc(var(--side-width, 330px) * 1.15); }
+  body.text-xlarge #tableScreen { grid-template-columns: minmax(0, 1fr) calc(var(--side-width, 330px) * 1.3); }
 }
 .statusTag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.85; margin-left: 6px; }
 .cbShort { display: none; }
@@ -697,7 +753,7 @@ body.cb .effectChip.bane { border-color: #d55e00; }
 #offerBox { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); z-index: 12; background: #2b2440; border: 1px solid #a89bd6; border-radius: 10px; padding: 10px 14px; max-width: 90%; box-shadow: 0 6px 20px rgba(0,0,0,.5); }
 #offerBox .buttonRow { margin-top: 8px; display: flex; gap: 8px; }
 
-.statusWhy { flex-basis: 100%; font-size: 0.85em; opacity: 0.85; }
+.statusWhy { order: 11; flex-basis: 100%; padding-left: calc(1.1em + 6px); font-size: 0.85em; opacity: 0.85; }
 .statusRow { flex-wrap: wrap; }
 
 /* Reaction prompts */
@@ -748,13 +804,19 @@ body.cb .effectChip.bane { border-color: #d55e00; }
 }
 #mapTools button { height: 34px; }
 #mapTools button.active, #rulerToggle.active { outline: 2px solid #e2a54b; }
-#mapTools select { height: 34px; }
+#mapTools select { height: 34px; width: auto; }
+#mapTools #qtPaint { max-width: 170px; }
+#mapTools #qtPaint.active { outline: 2px solid #e2a54b; }
+#mapTools { flex-wrap: wrap; max-width: calc(100% - 24px); }
 
 /* Touch screens: small controls are made big enough to tap */
 @media (pointer: coarse) {
   .barToggle { min-height: 32px !important; padding: 6px 10px !important; }
   input[type="file"] { min-height: 36px; }
 }
+
+/* The ground name under the pointer (players, when the DM allows it). */
+#tileHint { position: absolute; z-index: 7; pointer-events: none; padding: 3px 8px; border-radius: 6px; background: rgba(20, 22, 28, 0.92); border: 1px solid #e2a54b; color: #f0eadb; font-size: 13px; white-space: nowrap; }
 
 </style>
   <style>
@@ -1016,7 +1078,8 @@ body.themed { background: var(--ground); color: var(--text); }
 
 /* ---- Side panel: framed sections with carved headings ---- */
 .themed #sidePanel { background: var(--side-ground); border-left: 2px solid transparent; border-image: var(--edge) 1; padding: 10px; }
-.themed #sidePanel details { margin-bottom: 12px; padding: 2px var(--box-pad, 16px); }
+/* Side-panel boxes keep their sides narrow so fields keep their room; the corner art sits above and below the content. */
+.themed #sidePanel details { margin-bottom: 12px; padding: 2px min(var(--box-pad, 16px), 23px); }
 .themed #sidePanel details[open] { padding-bottom: 16px; }
 .themed #sidePanel details details { padding: 2px 12px; }
 .themed #sidePanel summary {
@@ -1045,24 +1108,26 @@ body.themed { background: var(--ground); color: var(--text); }
   border-radius: var(--radius-card);
   color: var(--text);
 }
+.themed .partyRow, .themed .playerRow { padding: 8px 10px; margin-bottom: 6px; }
 .themed .effectChip { background: var(--inset); border: 1px solid var(--gem); border-radius: var(--radius-card); color: var(--text); }
 
 /* Attacks: a sword mark in the accent colour */
-.themed .attackRow { padding: 9px 10px; margin-bottom: 8px; gap: 10px; }
+.themed .attackRow { padding: 6px 10px; margin-bottom: 6px; gap: 8px; }
 .themed .attackRow::before {
   content: "";
   flex: none;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border: 1px solid var(--edge-soft);
   border-radius: 50%;
   background-color: var(--panel);
   background-image: var(--sword);
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 17px;
+  background-size: 13px;
 }
 .themed .attackRow .attackNumbers { color: var(--muted); }
+.themed .attackRow.supportRow::before { display: none; }
 
 /* Roll log: each roll a card; critical hits, hits and misses tagged */
 .themed .rollEntry { padding: 8px 12px; margin-bottom: 8px; }
@@ -1130,6 +1195,21 @@ body.themed { background: var(--ground); color: var(--text); }
 .themed input.switch:checked { background: var(--btn); border-color: var(--btn-border); }
 .themed input.switch::after { background: var(--text); }
 .themed input.switch:checked::after { background: var(--panel); }
+
+/* Bars that float over the map keep style.css's dark backing, so they use the top bar's light lettering in every theme
+   (on Parchment and Druid the page text is dark ink, which would vanish on them). */
+.themed #pickBanner, .themed .routeBar, .themed #mapTools, .themed #statusMessage { color: var(--bar-text); }
+.themed #pickBanner .muted, .themed .routeBar .muted, .themed #mapTools .muted, .themed #pickBanner label, .themed .routeBar label, .themed #mapTools label { color: var(--bar-muted); }
+.themed .customEffect { color: var(--text); background: var(--inset); }
+
+/* Small grey and green lettering that style.css sets for a dark page: on the light themes (Parchment, Druid) it follows
+   the theme's own muted ink and darker greens and reds (--good, --bad), so it stays readable on paper. */
+.themed .statusRow .statusLeft, .themed .statusWhy, .themed .effectChip .effectDetail { color: var(--muted); }
+.themed .ecoMove { color: var(--good, #cde8cf); }
+.themed .ecoMove.spent { color: var(--bad, #e8b0b0); }
+.themed .statusRow.boon .statusIcon, .themed .statusRow.boon .statusName { color: var(--good, #5fd08a); }
+.themed .statusRow.bane .statusIcon, .themed .statusRow.bane .statusName { color: var(--bad, #ff7b6e); }
+body.theme-parchment, body.theme-druid { --good: #2e6b2a; --bad: #9e2b1c; }
 
 /* Smaller text that style.css colours for a dark page: follow the theme so it reads on light paper too. */
 .themed .statusNone, .themed .barNumber { color: var(--muted); }
@@ -1664,6 +1744,17 @@ body.theme-necromancer {
   --sword: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a8e07a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14.5 17.5 3 6V3h3l11.5 11.5'/%3E%3Cpath d='m13 19 6-6'/%3E%3Cpath d='m16 16 4 4'/%3E%3Cpath d='m19 21 2-2'/%3E%3C/svg%3E");
 }
 
+/* Subclass cards and ability cells in the level-up window */
+.themed button.subclassCard { background: var(--inset); color: var(--text); border: 2px solid var(--edge-soft); box-shadow: none; text-shadow: none; font-family: inherit; font-variant: normal; }
+.themed button.subclassCard:hover { background: var(--inset); border-color: var(--gem); }
+.themed button.subclassCard.picked { border-color: var(--good, #4caf50); background: color-mix(in srgb, var(--good, #4caf50) 16%, var(--inset)); box-shadow: 0 0 0 1px var(--good, #4caf50); }
+.themed .subclassEmblem { border-color: var(--gem); color: var(--gem); background: var(--panel); }
+.themed .subclassCard.picked .subclassEmblem { border-color: var(--good, #4caf50); color: var(--good, #4caf50); }
+.themed .abilityCell { background: var(--inset); border-color: var(--edge-soft); }
+.themed .abilityCell.assigned { border-color: var(--good, #4caf50); }
+.themed .abilityCell.primary { box-shadow: inset 0 0 0 1px var(--gem); }
+.themed .abilityMain { background: var(--gem); color: var(--panel); }
+
 </style>
 </head>
 <body>
@@ -1701,6 +1792,7 @@ body.theme-necromancer {
 
     <header id="topBar">
       <div id="roundLabel">Round 1</div>
+      <button id="endTurn" type="button" class="primary hiddenRow" title="Finish this turn and pass to the next in the initiative order">End turn</button>
       <div id="initStrip"></div>
       <div id="connectionLabel"></div>
       <button id="copyInvite" type="button" class="hiddenRow">Copy invite link</button>
@@ -1727,12 +1819,32 @@ body.theme-necromancer {
         <button id="zoomFit" type="button" class="textButton">Center</button>
         <button id="rulerToggle" type="button" class="textButton" title="Measure a distance: drag from one square to another">Ruler</button>
       </div>
-      <div id="mapTools" class="dmOnly hiddenRow" aria-label="Quick fog">
+      <div id="tileHint" class="hiddenRow" role="status"></div>
+        <div id="mapTools" class="dmOnly hiddenRow" aria-label="Quick painting">
         <span class="muted small">Fog</span>
         <button id="qtReveal" type="button" title="Paint to reveal (R)">Reveal</button>
         <button id="qtHide" type="button" title="Paint to hide (H)">Hide</button>
         <select id="qtBrush" aria-label="Brush size"><option value="1">1</option><option value="3" selected>3×3</option><option value="5">5×5</option></select>
         <button id="qtUndo" type="button" title="Undo the last fog change (Ctrl+Z)">Undo</button>
+        <select id="qtPaint" aria-label="Paint ground or walls" title="Paint ground or walls with the same brush">
+          <option value="">Ground and walls…</option>
+          <optgroup label="Ground">
+            <option value="tile:difficult">Difficult terrain</option>
+            <option value="tile:water">Shallow water</option>
+            <option value="tile:deep">Deep water</option>
+            <option value="tile:fire">Burning ground</option>
+            <option value="tile:ice">Slippery ice</option>
+            <option value="tile:hazard">Custom hazard (set in Map and fog)</option>
+            <option value="terrainOff">Clear ground</option>
+          </optgroup>
+          <optgroup label="Walls">
+            <option value="wallOn">Wall</option>
+            <option value="lowOn">Low wall (half cover)</option>
+            <option value="threeOn">Arrow slit (three-quarters cover)</option>
+            <option value="doorOn">Door</option>
+            <option value="wallOff">Erase walls</option>
+          </optgroup>
+        </select>
         <button id="qtStop" type="button" title="Stop painting (Esc)">✕</button>
       </div>
       <div id="pickBanner" class="hiddenRow">
@@ -1809,6 +1921,7 @@ body.theme-necromancer {
       <div id="placeQueue" class="hiddenRow"></div>
     </main>
 
+    <div id="sideResize" role="separator" aria-orientation="vertical" aria-label="Resize the side panel" title="Drag to resize the side panel (double-click for the usual width)"></div>
     <aside id="sidePanel">
 
       <details open>
@@ -1835,9 +1948,9 @@ body.theme-necromancer {
               <button id="hpDamage" type="button" class="danger">Damage</button>
               <button id="hpHeal" type="button">Heal</button>
             </div>
-            <div id="initRow" class="fieldRow">
-              <label>Init bonus <input id="initBonus" type="number" value="0"></label>
-              <button id="initRollButton" type="button">Roll initiative</button>
+            <div id="inspireRow" class="fieldRow hiddenRow">
+              <span id="inspireText" class="muted small"></span>
+              <button id="inspireGive" type="button" title="Give this character Heroic Inspiration (they spend it to reroll a die)">Give Heroic Inspiration</button>
             </div>
             <details id="tokenEditMore" class="subDetails">
               <summary>Edit token (name, HP, owner, picture)</summary>
@@ -1851,14 +1964,15 @@ body.theme-necromancer {
               <label>AC <input id="editAc" type="number"></label>
             </div>
             <div id="editDmFields" class="hiddenRow">
+              <label title="The player who controls this token, by their name">Owner <input id="editOwner" type="text" maxlength="40"></label>
               <div class="fieldRow">
-                <label>Owner (player name) <input id="editOwner" type="text" maxlength="40"></label>
                 <label>Type
                   <select id="editKind">
                     <option value="creature">Creature</option>
                     <option value="player">Player</option>
                   </select>
                 </label>
+                <label title="Added to its Initiative roll when combat starts or it joins">Init bonus <input id="initBonus" type="number" value="0"></label>
                 <label>Size
                   <select id="editSize" title="Large takes 2 by 2 tiles, Huge 3 by 3, Gargantuan 4 by 4">
                     <option>Tiny</option><option>Small</option><option>Medium</option>
@@ -1948,47 +2062,6 @@ body.theme-necromancer {
         <label id="secretRow" class="checkRow hiddenRow"><input id="secretRoll" type="checkbox"> Roll secretly (DM only)</label>
       </details>
 
-      <details class="dmOnly hiddenRow">
-        <summary>DM: Add a token</summary>
-        <div class="fieldRow">
-          <label>Name <input id="newName" type="text" maxlength="40"></label>
-          <label class="narrow">Color <input id="newColor" type="color" value="#3b82f6"></label>
-        </div>
-        <div id="newDmFields" class="hiddenRow">
-          <div class="fieldRow">
-            <label>Creature library <input id="newCreature" type="text" list="creatureList" placeholder="Search, for example Goblin or Adult Red"></label>
-            <datalist id="creatureList"></datalist>
-          </div>
-          <div class="fieldRow" id="creatureFilters">
-            <label>Type <select id="creatureType"><option value="">Any</option></select></label>
-            <label>Size <select id="creatureSize"><option value="">Any</option></select></label>
-            <label class="narrow">CR from <input id="creatureCrMin" type="number" min="0" max="30" step="any"></label>
-            <label class="narrow">to <input id="creatureCrMax" type="number" min="0" max="30" step="any"></label>
-          </div>
-          <div class="fieldRow">
-            <label class="narrow">How many <input id="creatureCount" type="number" min="1" max="20" value="1"></label>
-            <label class="checkRow"><input id="creatureRoll" type="checkbox" checked> Roll hit points</label>
-            <span id="creatureMatches" class="muted small"></span>
-          </div>
-          <div class="fieldRow">
-            <label>Soul Guide creature (optional) <input id="newSoul" type="text" list="soulList" placeholder="Search, for example Wolf"></label>
-            <datalist id="soulList"></datalist>
-          </div>
-          <div class="fieldRow">
-            <label>HP <input id="newHp" type="number"></label>
-            <label>AC <input id="newAc" type="number"></label>
-            <label>Type
-              <select id="newKind">
-                <option value="creature">Creature</option>
-                <option value="player">Player</option>
-              </select>
-            </label>
-          </div>
-          <label class="checkRow"><input id="newHidden" type="checkbox"> Start hidden from players</label>
-        </div>
-        <button id="newAdd" type="button" class="wide">Add token</button>
-      </details>
-
       <details class="dmOnly hiddenRow" open>
         <summary>DM: Combat</summary>
         <div id="tableCodeLine" class="codeLine"></div>
@@ -2001,125 +2074,177 @@ body.theme-necromancer {
         </div>
       </details>
 
-      <details class="dmOnly hiddenRow">
-        <summary>DM: Spell editor</summary>
-        <div class="muted small">Build a spell with a form instead of writing JSON. It is checked the same way an import is, then added to this game, or downloaded as a file.</div>
-        <button id="spellEdOpen" type="button" class="wide">Open the spell editor…</button>
-      </details>
-
-      <details class="dmOnly hiddenRow">
-        <summary>DM: Guides</summary>
-        <div class="muted small">Search the Salvage Guide (creatures and modules) and read the Soul Guide. Import packs/salvage_guide.json and packs/soul_guide.json first.</div>
-        <button id="guidesOpen" type="button" class="wide">Open the guides…</button>
-      </details>
-
-      <details class="dmOnly hiddenRow">
-        <summary>DM: Players and PINs</summary>
-        <div class="muted small">Each player joins with their name and PIN. You can always see every PIN here.</div>
-        <div id="playerList"></div>
-        <div class="fieldRow">
-          <label>New player name <input id="playerAddName" type="text" maxlength="40"></label>
-        </div>
-        <button id="playerAddButton" type="button" class="wide">Add player</button>
-      </details>
-
-      <details class="dmOnly hiddenRow">
-        <summary>DM: Party</summary>
-        <div class="muted small">Player characters stay here when you change maps. Their stats, attacks and pictures are kept.</div>
-        <div id="partyList"></div>
-        <h3>Create a player character</h3>
-        <div class="fieldRow">
-          <label>Character name <input id="partyName" type="text" maxlength="40"></label>
-          <label>Player name <input id="partyOwner" type="text" maxlength="40"></label>
-        </div>
-        <button id="partyAdd" type="button" class="wide">Create character</button>
-      </details>
-
-      <details class="dmOnly hiddenRow">
-        <summary>DM: Map and fog</summary>
-        <label>Upload map image <input id="mapFile" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        <div class="fieldRow topGap">
-          <label>Grid square size (pixels) <input id="cellSize" type="number" min="10" max="500" value="50"></label>
-          <button id="cellApply" type="button">Apply</button>
-        </div>
-        <label class="checkRow"><input id="fogOn" type="checkbox"> Fog on (players only see revealed squares)</label>
-        <label class="checkRow"><input id="shareHealth" type="checkbox"> Show the party's Hit Points to all players</label>
-        <div class="buttonRow">
-          <button id="fogReveal" type="button">Paint: reveal</button>
-          <button id="fogHide" type="button">Paint: hide</button>
-          <button id="fogStop" type="button">Stop painting</button>
-        </div>
-        <h3>Ground</h3>
-        <div class="fieldRow">
-          <label>Tile
-            <select id="tileKind">
-              <option value="difficult" selected>Difficult terrain</option>
-              <option value="water">Shallow water (difficult, puts out fire)</option>
-              <option value="deep">Deep water (difficult unless swimming)</option>
-              <option value="fire">Burning ground (1d10 fire)</option>
-              <option value="ice">Slippery ice (DC 10 Dex or Prone)</option>
-              <option value="hazard">Custom hazard</option>
-            </select>
-          </label>
-        </div>
-        <div id="hazardFields" class="hiddenRow">
+      <details id="dmTools" class="dmOnly hiddenRow">
+        <summary>DM tools</summary>
+        <details class="dmOnly hiddenRow">
+          <summary>Add a token</summary>
           <div class="fieldRow">
-            <label>Name <input id="hazardName" type="text" maxlength="40" placeholder="Acid pool"></label>
-            <label>Damage <input id="hazardDamage" type="text" maxlength="20" placeholder="2d6"></label>
-            <label>Type <input id="hazardType" type="text" maxlength="20" placeholder="acid"></label>
+            <label>Name <input id="newName" type="text" maxlength="40"></label>
+            <label class="narrow">Color <input id="newColor" type="color" value="#3b82f6"></label>
           </div>
+          <div id="newDmFields" class="hiddenRow">
+            <div class="fieldRow">
+              <label>Creature library <input id="newCreature" type="text" list="creatureList" placeholder="Search, for example Goblin or Adult Red"></label>
+              <datalist id="creatureList"></datalist>
+            </div>
+            <div class="fieldRow" id="creatureFilters">
+              <label>Type <select id="creatureType"><option value="">Any</option></select></label>
+              <label>Size <select id="creatureSize"><option value="">Any</option></select></label>
+              <label class="narrow">CR from <input id="creatureCrMin" type="number" min="0" max="30" step="any"></label>
+              <label class="narrow">to <input id="creatureCrMax" type="number" min="0" max="30" step="any"></label>
+            </div>
+            <div class="fieldRow">
+              <label class="narrow">How many <input id="creatureCount" type="number" min="1" max="20" value="1"></label>
+              <label class="checkRow"><input id="creatureRoll" type="checkbox" checked> Roll hit points</label>
+              <span id="creatureMatches" class="muted small"></span>
+            </div>
+            <div class="fieldRow">
+              <label>Soul Guide creature (optional) <input id="newSoul" type="text" list="soulList" placeholder="Search, for example Wolf"></label>
+              <datalist id="soulList"></datalist>
+            </div>
+            <div class="fieldRow">
+              <label>HP <input id="newHp" type="number"></label>
+              <label>AC <input id="newAc" type="number"></label>
+              <label>Type
+                <select id="newKind">
+                  <option value="creature">Creature</option>
+                  <option value="player">Player</option>
+                </select>
+              </label>
+            </div>
+            <label class="checkRow"><input id="newHidden" type="checkbox"> Start hidden from players</label>
+          </div>
+          <button id="newAdd" type="button" class="wide">Add token</button>
+        </details>
+        <details class="dmOnly hiddenRow">
+          <summary>Party</summary>
+          <div class="muted small">Player characters stay here when you change maps. Their stats, attacks and pictures are kept.</div>
+          <div id="partyList"></div>
+          <h3>Create a player character</h3>
           <div class="fieldRow">
-            <label>Save
-              <select id="hazardAbility"><option value="">none</option><option value="str">Str</option><option value="dex">Dex</option><option value="con">Con</option><option value="int">Int</option><option value="wis">Wis</option><option value="cha">Cha</option></select>
+            <label>Character name <input id="partyName" type="text" maxlength="40"></label>
+            <label>Player name <input id="partyOwner" type="text" maxlength="40"></label>
+          </div>
+          <button id="partyAdd" type="button" class="wide">Create character</button>
+        </details>
+        <details class="dmOnly hiddenRow">
+          <summary>Players and PINs</summary>
+          <div class="muted small">Each player joins with their name and PIN. You can always see every PIN here.</div>
+          <div id="playerList"></div>
+          <div class="fieldRow">
+            <label>New player name <input id="playerAddName" type="text" maxlength="40"></label>
+          </div>
+          <button id="playerAddButton" type="button" class="wide">Add player</button>
+        </details>
+        <details class="dmOnly hiddenRow">
+          <summary>Map and fog</summary>
+          <label>Upload map image <input id="mapFile" type="file" accept="image/png,image/jpeg,image/webp"></label>
+          <div class="fieldRow topGap">
+            <label>Grid square size (pixels) <input id="cellSize" type="number" min="10" max="500" value="50"></label>
+            <button id="cellApply" type="button">Apply</button>
+          </div>
+          <label class="checkRow"><input id="fogOn" type="checkbox"> Fog on (players only see revealed squares)</label>
+          <div class="buttonRow">
+            <button id="fogReveal" type="button">Paint: reveal</button>
+            <button id="fogHide" type="button">Paint: hide</button>
+            <button id="fogStop" type="button">Stop painting</button>
+          </div>
+          <h3>Ground</h3>
+          <div class="fieldRow">
+            <label>Tile
+              <select id="tileKind">
+                <option value="difficult" selected>Difficult terrain</option>
+                <option value="water">Shallow water (difficult, puts out fire)</option>
+                <option value="deep">Deep water (difficult unless swimming)</option>
+                <option value="fire">Burning ground (1d10 fire)</option>
+                <option value="ice">Slippery ice (DC 10 Dex or Prone)</option>
+                <option value="hazard">Custom hazard</option>
+              </select>
             </label>
-            <label>DC <input id="hazardDc" type="number" min="1" max="30" value="12"></label>
-            <label class="checkRow"><input id="hazardHalf" type="checkbox"> half on a save</label>
+          </div>
+          <div id="hazardFields" class="hiddenRow">
+            <div class="fieldRow">
+              <label>Name <input id="hazardName" type="text" maxlength="40" placeholder="Acid pool"></label>
+              <label>Damage <input id="hazardDamage" type="text" maxlength="20" placeholder="2d6"></label>
+              <label>Type <input id="hazardType" type="text" maxlength="20" placeholder="acid"></label>
+            </div>
+            <div class="fieldRow">
+              <label>Save
+                <select id="hazardAbility"><option value="">none</option><option value="str">Str</option><option value="dex">Dex</option><option value="con">Con</option><option value="int">Int</option><option value="wis">Wis</option><option value="cha">Cha</option></select>
+              </label>
+              <label>DC <input id="hazardDc" type="number" min="1" max="30" value="12"></label>
+              <label class="checkRow"><input id="hazardHalf" type="checkbox"> half on a save</label>
+            </div>
+            <div class="fieldRow">
+              <label>Hurts
+                <select id="hazardOn"><option value="both">on entering and at turn start</option><option value="enter">on entering</option><option value="start">at turn start</option></select>
+              </label>
+              <label class="checkRow"><input id="hazardDifficult" type="checkbox"> also Difficult Terrain</label>
+            </div>
+          </div>
+          <div class="buttonRow">
+            <button id="terrainOn" type="button">Paint: tile</button>
+            <button id="terrainOff" type="button">Paint: clear tile</button>
+            <button id="terrainClear" type="button">Clear all tiles</button>
+          </div>
+          <h3>Walls and cover</h3>
+          <div class="buttonRow">
+            <button id="wallOn" type="button">Paint: wall</button>
+            <button id="lowOn" type="button">Paint: low wall (half cover)</button>
+            <button id="threeOn" type="button">Paint: arrow slit (three-quarters cover)</button>
+            <button id="doorOn" type="button">Paint: door</button>
+            <button id="wallOff" type="button">Paint: erase walls</button>
+            <button id="wallClear" type="button">Clear all walls</button>
+          </div>
+          <div class="muted small">Tap a door on the map to open or close it (players: from a square next to it).</div>
+          <div class="fieldRow">
+            <label>Tool
+              <select id="fogTool">
+                <option value="brush" selected>Brush</option>
+                <option value="shape">Freeform shape (draw a closed outline)</option>
+              </select>
+            </label>
+            <button id="fogUndo" type="button">Undo last fog change</button>
           </div>
           <div class="fieldRow">
-            <label>Hurts
-              <select id="hazardOn"><option value="both">on entering and at turn start</option><option value="enter">on entering</option><option value="start">at turn start</option></select>
+            <label>Brush
+              <select id="fogBrush">
+                <option value="1">1 square</option>
+                <option value="3" selected>3 x 3</option>
+                <option value="5">5 x 5</option>
+              </select>
             </label>
-            <label class="checkRow"><input id="hazardDifficult" type="checkbox"> also Difficult Terrain</label>
           </div>
-        </div>
-        <div class="buttonRow">
-          <button id="terrainOn" type="button">Paint: tile</button>
-          <button id="terrainOff" type="button">Paint: clear tile</button>
-          <button id="terrainClear" type="button">Clear all tiles</button>
-        </div>
-        <h3>Walls and cover</h3>
-        <div class="buttonRow">
-          <button id="wallOn" type="button">Paint: wall</button>
-          <button id="lowOn" type="button">Paint: low wall (half cover)</button>
-          <button id="threeOn" type="button">Paint: arrow slit (three-quarters cover)</button>
-          <button id="doorOn" type="button">Paint: door</button>
-          <button id="wallOff" type="button">Paint: erase walls</button>
-          <button id="wallClear" type="button">Clear all walls</button>
-        </div>
-        <div class="muted small">Tap a door on the map to open or close it (players: from a square next to it).</div>
-        <div class="fieldRow">
-          <label>Tool
-            <select id="fogTool">
-              <option value="brush" selected>Brush</option>
-              <option value="shape">Freeform shape (draw a closed outline)</option>
+          <div class="buttonRow">
+            <button id="fogRevealAll" type="button">Reveal all</button>
+            <button id="fogHideAll" type="button">Hide all</button>
+          </div>
+        </details>
+        <details class="dmOnly hiddenRow">
+          <summary>Table rules</summary>
+          <div class="muted small">Rules for the whole table. Players see the result, not these switches.</div>
+          <label class="checkRow"><input id="shareHealth" type="checkbox"> Show the party's Hit Points to all players</label>
+          <label class="checkRow"><input id="terrainHints" type="checkbox"> Players see what kind of ground a square is when they hover over it</label>
+          <label class="checkRow"><input id="creatureLimits" type="checkbox" checked> Hold creatures to their turn: one Action, Bonus Action and Reaction, and their Speed (you can lift it for one creature's turn on its token panel)</label>
+          <label>Level-up hit points
+            <select id="hpMethod">
+              <option value="roll">Players roll the hit die</option>
+              <option value="average">Everyone takes the average</option>
             </select>
           </label>
-          <button id="fogUndo" type="button">Undo last fog change</button>
-        </div>
-        <div class="fieldRow">
-          <label>Brush
-            <select id="fogBrush">
-              <option value="1">1 square</option>
-              <option value="3" selected>3 x 3</option>
-              <option value="5">5 x 5</option>
-            </select>
-          </label>
-        </div>
-        <div class="buttonRow">
-          <button id="fogRevealAll" type="button">Reveal all</button>
-          <button id="fogHideAll" type="button">Hide all</button>
-        </div>
+        </details>
+        <details class="dmOnly hiddenRow">
+          <summary>Spell editor</summary>
+          <div class="muted small">Build a spell with a form instead of writing JSON. It is checked the same way an import is, then added to this game, or downloaded as a file.</div>
+          <button id="spellEdOpen" type="button" class="wide">Open the spell editor…</button>
+        </details>
+        <details class="dmOnly hiddenRow">
+          <summary>Guides</summary>
+          <div class="muted small">Search the Salvage Guide (creatures and modules) and read the Soul Guide. Import packs/salvage_guide.json and packs/soul_guide.json first.</div>
+          <button id="guidesOpen" type="button" class="wide">Open the guides…</button>
+        </details>
       </details>
+
 
       <details class="dmOnly hiddenRow">
         <summary>DM: Scenes and saving</summary>
@@ -2303,7 +2428,7 @@ function contentCleanStep(raw, problems, where) {
 // What a marked area does to a creature that enters it or starts a turn there.
 function contentCleanZoneHit(raw, inner) {
   if (!raw || typeof raw !== "object" || typeof raw.damage !== "string" || !rollDice(raw.damage.replace(/\s+/g, "").toLowerCase(), false)) return null;
-  const on = Array.isArray(raw.on) ? raw.on.filter(function (when) { return when === "enter" || when === "start" || when === "step"; }) : [];
+  const on = Array.isArray(raw.on) ? raw.on.filter(function (when) { return when === "enter" || when === "start" || when === "step" || when === "end"; }) : [];
   return {
     on: on.length > 0 ? on : ["start"],
     ability: RULES_ABILITIES.indexOf(raw.ability) !== -1 ? raw.ability : "",
@@ -2348,9 +2473,22 @@ function contentCleanSpell(raw, problems) {
     difficult: raw.difficult === true,
     zoneHit: contentCleanZoneHit(raw.zoneHit),
     zoneNote: contentText(raw.zoneNote, 300),
-    zoneSpare: raw.zoneSpare === "players" ? "players" : "none",
+    zoneSpare: raw.zoneSpare === "players" || raw.zoneSpare === "allies" ? raw.zoneSpare : "none",
+    zoneSlow: raw.zoneSlow === true,   // Speed is halved inside for the creatures it affects (Spirit Guardians)
     zoneCage: ["str","dex","con","int","wis","cha"].indexOf(raw.zoneCage) !== -1 ? raw.zoneCage : ""
   };
+  // Spirit Guardians follows the 2024 rule whatever copy of the spell pack is loaded: an aura that moves with the caster, no damage
+  // when cast; a creature takes it when the aura reaches it, when it enters, or when it ends its turn inside, once per turn;
+  // the caster's allies are spared and Speed is halved inside for the others.
+  if (id === "spirit_guardians" && spell.zoneHit) {
+    spell.steps = [];
+    raw = Object.assign({}, raw, { steps: [] });
+    spell.zoneHit.on = ["enter", "end"];
+    spell.zoneSpare = "allies";
+    spell.zoneSlow = true;
+    spell.zoneNote = "Allies of the caster are spared. Speed is halved inside for the others.";
+    spell.text = "An aura around the caster (15-foot Emanation) that moves with them. The caster's allies are unaffected; for the others Speed is halved inside. A creature makes a Wisdom save when the aura reaches it, when it enters the aura, or when it ends its turn inside, once per turn: 3d8 Radiant damage, half on a success.";
+  }
   if (Array.isArray(raw.classes)) {
     for (const classId of raw.classes.slice(0, 30)) {
       const clean = contentId(classId);
@@ -3485,7 +3623,8 @@ function rulesNewCharacter() {
     spells: {},             // class id -> { list: [spell ids] }
     concentration: null,    // { spellId, name, link }
     custom: {},             // class-specific choices (modules, souls ...)
-    overrides: {}
+    overrides: {},
+    autoAc: true            // AC comes from what is worn (unarmoured: 10 + Dex); the DM can switch it off (playtest 2026-11-20)
   };
 }
 
@@ -3577,7 +3716,8 @@ function rulesCleanCharacter(raw) {
     for (const key of RULES_ABILITIES) if (typeof raw.itemAbilityBase[key] === "number") character.itemAbilityBase[key] = rulesCleanInt(raw.itemAbilityBase[key], 1, 30, 10);
   }
   if (typeof raw.gold === "number") character.gold = rulesCleanInt(raw.gold * 100, 0, 1000000000, 0) / 100;
-  if (raw.autoAc === true) character.autoAc = true;
+  // Calculated AC is the default; only a character the DM switched off (false) stays on a typed AC.
+  character.autoAc = raw.autoAc !== false;
   if (typeof raw.acOverride === "number") character.acOverride = rulesCleanInt(raw.acOverride, 0, 99, 10);
   if (raw.species && typeof speciesClean === "function") {
     const species = speciesClean(raw.species);
@@ -3832,6 +3972,13 @@ function rulesPools(token) {
       }
     }
     for (const hook of RULES_POOL_HOOKS) hook(token, entry, cls, vars, pools);
+  }
+  // Heroic Inspiration (2024): any character can have it, at most one; the DM gives it (Restore 1, or the button on the token
+  // panel) and the player spends it to reroll a die. Humans (Resourceful) and Champions get theirs from their own rules above.
+  if (character.classes.length > 0 && !pools.some(function (pool) { return pool.id === "heroic_inspiration"; })) {
+    if (!character.resources.heroic_inspiration) character.resources.heroic_inspiration = { used: 1 };   // starts without it
+    pools.push(rulesMakePool(character, { id: "heroic_inspiration", name: "Heroic Inspiration", max: 1, recharge: "none",
+      text: "Given by the DM. Spend it to reroll any die right after you roll it, and use the new roll." }, {}, "rules", null, null));
   }
   return pools;
 }
@@ -5606,7 +5753,8 @@ function rulesCastSpell(action, name, isDm) {
       hit: spell.zoneHit ? Object.assign({}, spell.zoneHit, {
         damage: spell.zoneHit.damage + (extraLevels > 0 && spell.zoneHit.perLevel ? "+" + rulesScaleDice(spell.zoneHit.perLevel, extraLevels) : "")
       }) : null,
-      dc: ctx.spellDc, spare: spell.zoneSpare === "players" ? "players" : "none", cage: spell.zoneCage || "", stamps: {}, spellId: spell.id, cleared: []
+      dc: ctx.spellDc, spare: spell.zoneSpare === "players" || spell.zoneSpare === "allies" ? spell.zoneSpare : "none", slow: spell.zoneSlow === true,
+      cage: spell.zoneCage || "", stamps: {}, spellId: spell.id, cleared: []
     });
     if (typeof zoneFireSetup === "function") zoneFireSetup(state.zones[state.zones.length - 1], spell, ctx, extraLevels, lines, dice);
     lines.push(spell.name + " is marked on the map" + (spell.concentration ? " until the concentration ends." : "."));
@@ -5730,7 +5878,13 @@ function rulesHandleAction(action, name, isDm) {
       total += entry.level;
     }
     if (total > 20) return "Total level cannot be above 20.";
-    const character = token.character || rulesNewCharacter();
+    // Setting classes directly keeps the AC the DM typed on the token ("Hit points and armor class stay as you set them");
+    // a character made through the level-up window has gear-based AC on.
+    let character = token.character;
+    if (!character) {
+      character = rulesNewCharacter();
+      character.autoAc = false;
+    }
     character.classes = raw.classes;
     token.character = character;
     token.sheet.prof = rulesProfBonus(total);
@@ -6400,6 +6554,17 @@ const ECO_NAMES = { action: "Action", bonus: "Bonus Action", reaction: "Reaction
 
 function ecoOn() { return state.initiative.started === true; }
 
+// Who the turn limits hold: every player, and the DM's creatures too (Table rules: "Hold creatures to their turn", on by default).
+// The DM can free one creature for the rest of its turn from the token panel (eco.free), and is never held for player tokens.
+function ecoBinds(token, isDm) {
+  if (!isDm) return true;
+  if (token.kind === "player") return false;
+  if (state.map && state.map.creatureLimits === false) return false;
+  return !(token.eco && token.eco.free === true);
+}
+
+const ECO_DM_HINT = " (DM: tick it back on the token panel, or press \"No limits\" on it)";
+
 function ecoState(token) {
   if (!token.eco || typeof token.eco !== "object") token.eco = { action: false, bonus: false, reaction: false, bonusSpell: false, actionSpell: false, moved: 0, dash: 0 };
   return token.eco;
@@ -6407,10 +6572,10 @@ function ecoState(token) {
 
 // Returns an error text when the flag is already spent, else null.
 function ecoCheck(token, kind, isDm) {
-  if (!ecoOn() || isDm || ECO_KINDS.indexOf(kind) === -1) return null;
+  if (!ecoOn() || !ecoBinds(token, isDm) || ECO_KINDS.indexOf(kind) === -1) return null;
   if (typeof rulesIncapacitated === "function" && rulesIncapacitated(token)) return token.name + " is Incapacitated and can't take Actions, Bonus Actions or Reactions.";
   if (kind === "action" && ecoState(token).action && (ecoState(token).extra || 0) > 0) return null;   // Action Surge or Haste: one more Action
-  if (ecoState(token)[kind]) return "You have already used your " + ECO_NAMES[kind] + " this turn (tick it off on the token panel if that is wrong).";
+  if (ecoState(token)[kind]) return isDm ? token.name + " has already used its " + ECO_NAMES[kind] + " this turn" + ECO_DM_HINT + "." : "You have already used your " + ECO_NAMES[kind] + " this turn (tick it off on the token panel if that is wrong).";
   return null;
 }
 
@@ -6435,7 +6600,7 @@ function ecoSpellKind(spell, action) {
 
 // Checks a cast against the economy. Returns an error text or null.
 function ecoCheckCast(token, spell, action, isDm) {
-  if (!ecoOn() || isDm) return null;
+  if (!ecoOn() || !ecoBinds(token, isDm)) return null;
   const kind = ecoSpellKind(spell, action);
   if (kind === "") return null;
   const eco = ecoState(token);
@@ -6478,6 +6643,18 @@ function ecoOnAttack(attacker, attack) {
   ecoState(attacker).action = true;
 }
 
+// A creature's attack on its own turn spends its Action; a Multiattack is one Action. Legendary Actions and Reactions are
+// taken on other turns and are not counted here. Returns an error text when the Action is already used.
+function ecoCreatureAttack(attacker, isDm) {
+  if (!ecoOn() || attacker.kind === "player" || !ecoBinds(attacker, isDm)) return null;
+  if (typeof rulesOnItsTurn === "function" && !rulesOnItsTurn(attacker)) return null;
+  const eco = ecoState(attacker);
+  if (eco.action && (eco.extra || 0) > 0) { eco.extra -= 1; return null; }
+  if (eco.action) return attacker.name + " has already used its Action this turn (a Multiattack is one Action)" + ECO_DM_HINT + ".";
+  eco.action = true;
+  return null;
+}
+
 RULES_TURN_START_HOOKS.push(function (token) {
   token.eco = { action: false, bonus: false, reaction: false, bonusSpell: false, actionSpell: false, moved: 0, dash: 0, extra: 0, noMagic: false };
   // Haste: one extra Action each turn (attack one weapon attack, Dash, Disengage, Hide or Utilize, not the Magic action).
@@ -6491,6 +6668,11 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
   const token = hostFindToken(action.tokenId);
   if (!token) return "That token no longer exists.";
   if (!canControlToken(token, name, isDm)) return "That is not your token.";
+  if (action.kind === "free") {
+    if (!isDm) return "Only the DM can lift a creature's turn limits.";
+    ecoState(token).free = action.value !== false;
+    return null;
+  }
   if (ECO_KINDS.indexOf(action.kind) === -1) return "Unknown action type.";
   const eco = ecoState(token);
   eco[action.kind] = action.kind && typeof action.value === "boolean" ? action.value : !eco[action.kind];
@@ -6569,6 +6751,7 @@ function rulesSpeed(token) {
     if (typeof effect.exhaustion === "number") exhaustion += effect.exhaustion;
   }
   if (typeof equipSpeedMult === "function") multiplier *= equipSpeedMult(token);
+  if (typeof zoneSlowsHere === "function" && zoneSlowsHere(token)) multiplier *= 0.5;   // Spirit Guardians
   speed = Math.floor(speed * multiplier) - 5 * exhaustion;
   return Math.max(0, speed);
 }
@@ -6880,12 +7063,12 @@ function rulesMoveCharge(token, oldX, oldY, newX, newY, isDm, stops) {
   if (modeCost !== null && modeCost !== 1) feet = Math.ceil(feet * modeCost);
   const eco = rulesMoveState(token);
   if (eco.squeezing === true) feet *= 2;   // squeezing: every foot costs 1 extra foot
-  if (!isDm) {
+  if (typeof ecoBinds === "function" ? ecoBinds(token, isDm) : !isDm) {
     if (rulesBaseSpeed(token) === 0) return token.name + "'s Speed is 0 (conditions), so it can't move.";
     const limit = rulesMoveLimit(token);
     if (eco.moved + feet > limit) {
       const left = Math.max(0, limit - eco.moved);
-      return "Not enough movement: " + left + " ft left of " + limit + " ft this turn" + (rulesIsProne(token) && mode === "walk" ? " (crawling costs double)" : "") + (typeof grapDragCost === "function" && grapDragCost(token) ? " (dragging a grappled creature halves Speed)" : "") + (modeCost !== null && modeCost !== 1 ? " (" + RULES_MODE_NAMES[mode] + " costs " + modeCost + " ft per foot)" : "") + (units > squares ? " (this move costs " + feet + " ft because of difficult terrain)" : "") + ". Take the Dash action for more.";
+      return "Not enough movement: " + left + " ft left of " + limit + " ft this turn" + (rulesIsProne(token) && mode === "walk" ? " (crawling costs double)" : "") + (typeof grapDragCost === "function" && grapDragCost(token) ? " (dragging a grappled creature halves Speed)" : "") + (modeCost !== null && modeCost !== 1 ? " (" + RULES_MODE_NAMES[mode] + " costs " + modeCost + " ft per foot)" : "") + (units > squares ? " (this move costs " + feet + " ft because of difficult terrain)" : "") + ". Take the Dash action for more." + (isDm ? " (DM: \"No limits\" on the token panel lifts it.)" : "");
     }
   }
   eco.moved += feet;
@@ -6898,7 +7081,7 @@ function rulesStandCharge(token, isDm) {
   const eco = rulesMoveState(token);
   let cost = Math.floor(rulesSpeed(token) / 2);
   if (typeof featHas === "function" && token.character && featHas(token, "Athlete")) cost = Math.min(cost, 5);   // Hop Up
-  if (!isDm) {
+  if (typeof ecoBinds === "function" ? ecoBinds(token, isDm) : !isDm) {
     if (rulesSpeed(token) === 0) return token.name + "'s Speed is 0, so it can't right itself.";
     if (eco.moved + cost > rulesMoveLimit(token)) return "Standing up costs " + cost + " ft of movement and only " + Math.max(0, rulesMoveLimit(token) - eco.moved) + " ft is left.";
   }
@@ -14548,6 +14731,9 @@ function lvlBuildSteps(ctx) {
     steps.push({
       id: "abilities", kind: "abilities", title: "Ability scores", required: true, numbers: rolled,
       canReroll: ctx.pending.rerollOk === true,
+      // The class's main abilities (Warlock: Charisma; Fighter: Strength or Dexterity), marked on the page.
+      primary: cls.multiclass ? (cls.multiclass.all || []).concat(cls.multiclass.any || []) : [],
+      primaryText: typeof cls.primaryAbility === "string" ? cls.primaryAbility : "",
       text: rolled ? "Assign each number to an ability. Each number is used once." : "Roll your ability scores. You can only roll once."
     });
     const given = ctx.pending.answers.abilities;
@@ -14555,9 +14741,18 @@ function lvlBuildSteps(ctx) {
   }
 
   // Species (new characters): the species, then what it needs (size, lineage, skill, feat).
-  if (typeof speciesSteps === "function") for (const step of speciesSteps(ctx)) steps.push(step);
+  // The species' own skill and feat (Human: Skillful, Versatile) come after the background, so they are chosen knowing what the
+  // background already gives and cannot repeat it.
+  const speciesLater = [];
+  if (typeof speciesSteps === "function") {
+    for (const step of speciesSteps(ctx)) {
+      if (step.id === "species_skill" || step.id === "species_feat") speciesLater.push(step);
+      else steps.push(step);
+    }
+  }
   // Background (new characters): the background, then ability increases, tool and Origin feat.
   if (typeof backgroundSteps === "function") for (const step of backgroundSteps(ctx)) steps.push(step);
+  for (const step of speciesLater) steps.push(step);
 
   // Languages (new characters): two of your choice.
   if (typeof languagesSteps === "function") for (const step of languagesSteps(ctx)) steps.push(step);
@@ -14572,10 +14767,12 @@ function lvlBuildSteps(ctx) {
   const hitDie = cls.hitDie;
   const conMod = abilityMod(conScore);
   const auto = lvlIsFirstClass(ctx);
+  // How hit points go up is the DM's call for the table (DM tools: "Level-up hit points"), not the player's: roll (the default)
+  // or the fixed average.
   steps.push({
     id: "hp", kind: "hp", title: "Hit points", required: !auto, auto: auto,
     hitDie: hitDie, average: Math.floor(hitDie / 2) + 1, conMod: conMod, fixed: hitDie + conMod,
-    rolled: ctx.pending.hpRolled
+    rolled: ctx.pending.hpRolled, method: state.map && state.map.hpAverage === true ? "average" : "roll"
   });
 
   // Subclass.
@@ -14605,6 +14802,17 @@ function lvlBuildSteps(ctx) {
   // Spells known.
   const spellStep = lvlBuildSpellStep(ctx);
   if (spellStep) steps.push(spellStep);
+
+  // Skill pages also show the skills the character already has (on the sheet, or from another choice of this level).
+  for (const step of steps) {
+    if (step.kind !== "skills" || step.expertise) continue;
+    const have = [];
+    const pending = typeof originPendingSkills === "function" ? originPendingSkills(ctx, step.id) : [];
+    for (const skill of SKILLS) {
+      if ((token.sheet.skills[skill[0]] || 0) > 0 || pending.indexOf(skill[0]) !== -1) have.push(skill[1]);
+    }
+    step.have = have;
+  }
 
   for (const step of steps) {
     step.answer = ctx.pending.answers[step.id] === undefined ? null : ctx.pending.answers[step.id];
@@ -14902,6 +15110,13 @@ function lvlValidate(ctx, step, value) {
     return step.scores[value.a] + 1 <= 20 && step.scores[value.b] + 1 <= 20 ? null : "A score cannot go above 20.";
   }
   if (step.kind === "feat") return lvlCheckFeat(ctx, step, value);
+  if (step.kind === "skills" && Array.isArray(value)) {
+    // A skill that another choice of this level already gives (the background, a class pick) is no longer offered: say which.
+    const ids = step.options.map(function (option) { return option.id; });
+    const clash = value.find(function (id) { return ids.indexOf(id) === -1; });
+    const named = clash ? SKILLS.find(function (skill) { return skill[0] === clash; }) : null;
+    if (named) return named[1] + " already comes from another choice (background, species or class). Choose a different skill.";
+  }
   if (step.kind === "pick" || step.kind === "skills") {
     return lvlSameList(value, step.count, step.options.map(function (option) { return option.id; }), "options");
   }
@@ -15192,6 +15407,8 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
     if (step.kind === "hp") {
       if (!value || (value.method !== "average" && value.method !== "roll")) return "Choose average or roll.";
       if (step.auto) return "Your first level uses the full hit die.";
+      // Players follow the table's method (DM tools); the DM may choose either.
+      if (!isDm && step.method && value.method !== step.method) return step.method === "average" ? "This table takes the average for hit points." : "This table rolls for hit points.";
       if (value.method === "roll" && typeof ctx.pending.hpRolled !== "number") ctx.pending.hpRolled = 1 + Math.floor(Math.random() * step.hitDie);
       value = { method: value.method };
     }
@@ -15793,6 +16010,11 @@ RULES_VIEW_HOOKS.push(function (token, view) {
   const out = [];
   for (const found of cuUsesFor(token)) {
     const use = found.use;
+    // A rider the character can't use yet (an invocation not picked, a level not reached) is not listed.
+    if (use.rider && typeof use.rider === "object") {
+      if (Array.isArray(use.rider.needsPick) && !rulesPicked(token, use.rider.needsPick[0], use.rider.needsPick[1])) continue;
+      if (typeof use.rider.minLevel === "number" && found.entry && found.entry.level < use.rider.minLevel) continue;
+    }
     const pool = cuPoolFor(token, use);
     out.push({
       classId: found.classId, featureId: found.feature.id, id: use.id, name: contentText(use.name, 60) || use.id,
@@ -15801,6 +16023,7 @@ RULES_VIEW_HOOKS.push(function (token, view) {
       needs: ["none", "self", "targets", "allies"].indexOf(use.needs) !== -1 ? use.needs : "none",
       maxTargets: typeof use.maxTargets === "number" ? use.maxTargets : 1,
       riderOnly: use.riderOnly === true,
+      needsTile: typeof use.teleport === "number" || !!use.teleportRoll || !!use.illusion || !!use.placeZone,
       rider: !!(use.rider && typeof use.rider === "object"),
       slotRider: use.rider && use.rider.slot ? { min: use.rider.slot.min || 1, max: use.rider.slot.max || 9 } : null,
       variable: !!(use.cost && use.cost.variable),
@@ -17168,7 +17391,7 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
     const wanted = item.kind === "attack" || item.kind === "save" ? "Legendary: " + item.name : item.attack;
     const found = token.attacks.find(function (attack) { return attack.name === wanted; });
     if (!found) return token.name + " has no attack called " + wanted + ".";
-    failed = hostHandleAction({ type: "attack", attackerId: token.id, attackId: found.id, targetIds: targetIds, mode: action.mode, secret: action.secret }, name, isDm);
+    failed = hostHandleAction({ type: "attack", attackerId: token.id, attackId: found.id, targetIds: targetIds, mode: action.mode, secret: action.secret, freeAction: true }, name, isDm);
   } else if (typeof item.spell === "string") {
     const listed = creatureSpellEntries(creature).find(function (entry) { return creatureNorm(entry.name) === creatureNorm(item.spell); });
     const fromLibrary = listed ? null : creatureLibrarySpell(null, item.spell);
@@ -17250,7 +17473,7 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
       token.attacks.push(attack);
       found = attack;
     }
-    const failed = hostHandleAction({ type: "attack", attackerId: token.id, attackId: found.id, targetIds: targetIds, mode: action.mode, secret: action.secret }, name, isDm);
+    const failed = hostHandleAction({ type: "attack", attackerId: token.id, attackId: found.id, targetIds: targetIds, mode: action.mode, secret: action.secret, freeAction: true }, name, isDm);
     if (failed) return failed;
   } else {
     addRoll(name, action.secret === true, token.name + ": " + item.name + " (lair action)", [item.text], []);
@@ -17314,48 +17537,110 @@ function creatureInitiative(creature) {
 function attacksSpellEntry(token, entry, cls, spell, limits) {
   const damageSteps = spell.steps.filter(function (step) { return step.type === "attack" || step.type === "save"; });
   const summon = !spell.area && rulesSpellSpawns(spell);
-  if (damageSteps.length === 0 && !summon) return null;
-  const first = damageSteps.length > 0 ? damageSteps[0] : { type: "summon" };
+  // An area that hurts later and does nothing when cast (Spirit Guardians): listed with the area's own save and damage.
+  const zoneOnly = damageSteps.length === 0 && spell.zone === true && !!spell.zoneHit;
+  if (damageSteps.length === 0 && !summon && !zoneOnly) return null;
+  const first = damageSteps.length > 0 ? damageSteps[0] : (zoneOnly ? { type: spell.zoneHit.ability ? "save" : "attack", ability: spell.zoneHit.ability } : { type: "summon" });
   const pieces = [];
   for (const step of damageSteps) {
     for (const part of Array.isArray(step.damage) ? step.damage : []) pieces.push(part.dice + (part.type ? " " + part.type : ""));
   }
+  if (zoneOnly) pieces.push(spell.zoneHit.damage + (spell.zoneHit.type ? " " + spell.zoneHit.type : "") + " (aura: on entering or ending a turn in it)");
   const casting = rulesSpellcasting(cls);
   const needsTarget = spell.steps.some(function (step) { return step.to !== "self" && ["text", "spawn", "pool"].indexOf(step.type) === -1; });
   const top = spell.level === 0 ? 0 : Math.max(spell.level, Math.min(9, limits.maxLevel));
+  // Eldritch Blast: one beam per target pick, by character level (1, then 2 at 5, 3 at 11, 4 at 17), and beams may hit the
+  // same creature, so the pick lets the same token be tapped again.
+  const beams = spell.id === "eldritch_blast" ? rulesBlastBeams(rulesTotalLevel(token.character)) : 0;
   return {
     classId: cls.id, spellId: spell.id, name: spell.name, level: spell.level,
     kind: first.type, ability: first.type === "save" ? first.ability || "" : "",
     damage: pieces.join(" + "), concentration: spell.concentration === true,
-    maxTargets: Math.max(1, spell.area && spell.maxTargets > 1 ? 40 : spell.maxTargets || 1), needsTarget: needsTarget,
+    maxTargets: beams > 0 ? beams : Math.max(1, spell.area && spell.maxTargets > 1 ? 40 : spell.maxTargets || 1), needsTarget: needsTarget,
+    repeat: beams > 0,
     area: spell.area || null, rangeFeet: areaRangeFeet(spell), summon: summon,
+    selfZone: zoneOnly && !!spell.area && spell.area.origin === "self",   // cast at once, centred on the caster: nothing to pick
     topLevel: top,
     dc: rulesSpellDc(token, entry, cls), attack: rulesSpellAttack(token, entry, cls),
     costsPool: casting && casting.cost && casting.cost.pool ? casting.cost.pool : ""
   };
 }
 
-RULES_VIEW_HOOKS.push(function (token, view) {
-  const list = [];
+// Healing and support spells (Cure Wounds, Bless, Longstrider, Shield of Faith, Aid...): spells with no attack or save
+// whose steps heal, give Temporary Hit Points or lay an effect on a creature, cast in combat (an Action, Bonus Action
+// or Reaction). Listed under Attacks in their own group so they are one tap away.
+function attacksSupportEntry(token, entry, cls, spell, limits) {
+  const kinds = ["heal", "tempHp", "maxHpBoost", "effect"];
+  if (!Array.isArray(spell.steps) || spell.steps.length === 0) return null;
+  if (spell.steps.some(function (step) { return step.type === "attack" || step.type === "save"; })) return null;
+  if (!spell.steps.some(function (step) { return kinds.indexOf(step.type) !== -1; })) return null;
+  if (!/action|reaction/i.test(String(spell.castingTime || ""))) return null;
+  const selfOnly = spell.steps.every(function (step) { return step.to === "self"; });
+  const readable = function (dice) { return String(dice).replace(/\s*\+\s*@spellMod/g, " + spell mod").replace(/@spellMod/g, "spell mod"); };
+  const what = [];
+  for (const step of spell.steps) {
+    if (step.type === "heal") what.push("heals " + readable(step.dice));
+    else if (step.type === "tempHp") what.push(readable(step.dice) + " temp HP");
+    else if (step.type === "maxHpBoost") what.push("+" + step.amount + " max HP");
+    else if (step.type === "effect" && step.effect) what.push(step.effect.note || step.effect.name);
+  }
+  const top = spell.level === 0 ? 0 : Math.max(spell.level, Math.min(9, limits.maxLevel));
+  return {
+    classId: cls.id, spellId: spell.id, name: spell.name, level: spell.level, support: true,
+    kind: "support", ability: "", damage: "", what: what.join("  ·  "), castingTime: spell.castingTime,
+    concentration: spell.concentration === true,
+    maxTargets: Math.max(1, spell.maxTargets || 1), needsTarget: !selfOnly, selfOnly: selfOnly,
+    repeat: false, area: spell.area || null, rangeFeet: areaRangeFeet(spell), summon: false,
+    topLevel: top, dc: 0, attack: 0, costsPool: ""
+  };
+}
+
+// Where a character's spells come from: each class, then the species, feats (Magic Initiate, Fey-Touched...) and magic items,
+// which are cast as the "species", "featspell" and "itemspell" classes. Spells from those three are not upcast from here.
+function attacksSpellSources(token) {
+  const sources = [];
   for (const entry of token.character.classes) {
     const cls = rulesClassFor(entry);
     if (!cls || !cls.spellcasting) continue;
-    const limits = rulesSpellLimits(entry, cls);
-    const seen = [];
     const known = (token.character.spells[cls.id] ? token.character.spells[cls.id].list : [])
       .concat(Array.isArray(cls.spellcasting.alwaysKnown) ? cls.spellcasting.alwaysKnown : [])
       .concat(rulesGrantedSpellIds(entry, cls));
-    for (const id of known) {
+    sources.push({ entry: entry, cls: cls, ids: known, limits: rulesSpellLimits(entry, cls) });
+  }
+  const extras = [
+    typeof speciesCasting === "function" ? speciesCasting(token) : null,
+    typeof featSpellCasting === "function" ? featSpellCasting(token) : null,
+    typeof equipItemSpellCasting === "function" ? equipItemSpellCasting(token) : null
+  ];
+  for (const extra of extras) {
+    if (!extra || !extra.cls || !extra.cls.spellcasting) continue;
+    const ids = Array.isArray(extra.ids) ? extra.ids : (Array.isArray(extra.cls.spellcasting.alwaysKnown) ? extra.cls.spellcasting.alwaysKnown : []);
+    sources.push({ entry: extra.entry, cls: extra.cls, ids: ids, limits: { maxLevel: 0 } });
+  }
+  return sources;
+}
+
+RULES_VIEW_HOOKS.push(function (token, view) {
+  const list = [];
+  const support = [];
+  const seen = [];
+  for (const source of attacksSpellSources(token)) {
+    for (const id of source.ids) {
       if (seen.indexOf(id) !== -1) continue;
-      seen.push(id);
       const spell = CONTENT.spells[id];
       if (!spell) continue;
-      const item = attacksSpellEntry(token, entry, cls, spell, limits);
-      if (item) list.push(item);
+      seen.push(id);
+      const item = attacksSpellEntry(token, source.entry, source.cls, spell, source.limits);
+      if (item) { list.push(item); continue; }
+      const help = attacksSupportEntry(token, source.entry, source.cls, spell, source.limits);
+      if (help) support.push(help);
     }
   }
-  list.sort(function (a, b) { return a.level - b.level || a.name.localeCompare(b.name); });
+  const order = function (a, b) { return a.level - b.level || a.name.localeCompare(b.name); };
+  list.sort(order);
+  support.sort(order);
   view.spellAttacks = list;
+  view.spellSupport = support;
 });
 
 // Unarmed Strike: 1 + Strength modifier (a Monk uses the Martial Arts die and the better of Strength and Dexterity).
@@ -20162,6 +20447,25 @@ function zoneEndInside(zone, x, y, center) {
   return zone.endSquares.indexOf(x + "," + y) !== -1;
 }
 
+// The caster's side: a player character's allies are the player characters and summoned creatures; a creature's allies are the
+// other creatures.
+function zoneIsAlly(zone, token) {
+  const owner = typeof hostFindToken === "function" ? hostFindToken(zone.ownerId) : null;
+  const ownerIsPlayer = owner ? owner.kind === "player" || typeof owner.summonOf === "number" : true;
+  const tokenIsPlayer = token.kind === "player" || typeof token.summonOf === "number";
+  return ownerIsPlayer === tokenIsPlayer;
+}
+
+// Spirit Guardians: a creature it affects has its Speed halved while inside.
+function zoneSlowsHere(token) {
+  if (!Array.isArray(state.zones)) return false;
+  for (const zone of state.zones) {
+    if (zone.slow !== true || !zoneAffects(zone, token)) continue;
+    if (zoneInside(zone, token.x, token.y, zoneCenter(zone))) return true;
+  }
+  return false;
+}
+
 function zoneStamp() {
   return state.initiative.round + ":" + state.initiative.turn;
 }
@@ -20171,6 +20475,7 @@ function zoneAffects(zone, token) {
   if (token.id === zone.ownerId && zone.hitsOwner !== true) return false;
   if (typeof token.hp === "number" && token.hp <= 0) return false;
   if (zone.spare === "players" && token.kind === "player") return false;
+  if (zone.spare === "allies" && zoneIsAlly(zone, token)) return false;
   // A zone that gives temporary hit points (Sanctuary Spirit) helps the caster's allies: player characters and summoned spirits.
   if (zone.hit && zone.hit.temp === true && token.kind !== "player" && typeof token.summonOf !== "number") return false;
   return true;
@@ -20297,7 +20602,7 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
   if (!zone) return "That area is gone.";
   const owner = hostFindToken(zone.ownerId);
   if (!isDm && !(owner && canControlToken(owner, name, false))) return "Only the caster or the DM can change that.";
-  zone.spare = action.mode === "players" ? "players" : "none";
+  zone.spare = action.mode === "players" || action.mode === "allies" ? action.mode : "none";
   return null;
 });
 
@@ -20321,9 +20626,19 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
 });
 
 // endHit (Hunger of Hadar): a second effect for a creature that ENDS its turn inside the area, with its own save, damage and type.
+// A zone whose hit is "end" (Spirit Guardians) hits a creature that ends its turn inside, unless it was already hit this turn.
 RULES_TURN_END_HOOKS.push(function (token) {
   const lines = [];
   const done = {};
+  for (const zone of state.zones) {
+    if (!zone.hit || zone.hit.on.indexOf("end") === -1 || !zoneAffects(zone, token)) continue;
+    if (zone.stamps[token.id] === zoneStamp()) continue;   // once per turn
+    if (!zoneInside(zone, token.x, token.y, zoneCenter(zone))) continue;
+    if (done[zone.name]) continue;
+    done[zone.name] = true;
+    const line = zoneApply(zone, token);
+    if (line !== "") lines.push(line);
+  }
   for (const zone of state.zones) {
     const endHit = zone.endHit || (zone.hit && zone.hit.endHit);
     if (!endHit || !zoneAffects(zone, token)) continue;
@@ -20725,6 +21040,27 @@ RULES_VIEW_HOOKS.push(function (token, view) {
 
 const SPECIES_SIZES = [{ id: "Medium", name: "Medium" }, { id: "Small", name: "Small" }];
 
+// The full description of a species for the creation page: the basics, what it gives (resistances, spells, skill, feat) and
+// every trait in full.
+function speciesDetails(item) {
+  const lines = [];
+  lines.push({ label: "Basics", text: (item.type || "Humanoid") + ", " + item.sizes.join(" or ") + ", Speed " + item.speed + " ft" + (item.darkvision ? ", Darkvision " + item.darkvision + " ft" : "") + "." });
+  if (Array.isArray(item.resist) && item.resist.length > 0) lines.push({ label: "Resistances", text: item.resist.map(function (type) { return type.charAt(0).toUpperCase() + type.slice(1); }).join(", ") + "." });
+  const spells = [];
+  if (Array.isArray(item.cantrips)) for (const name of item.cantrips) spells.push(name + " (cantrip)");
+  if (item.choice && item.choice.options.some(function (option) { return option.cantrips || option.spells; })) spells.push("more by your " + item.choice.title.toLowerCase() + " choice");
+  if (spells.length > 0) lines.push({ label: "Spells", text: spells.join(", ") + "." });
+  const traits = Array.isArray(item.traits) ? item.traits : [];
+  if (item.choice) {
+    const about = traits.find(function (trait) { return trait.name === item.choice.title; });
+    lines.push({ label: item.choice.title, text: (about ? about.text + " " : "") + "Options: " + item.choice.options.map(function (option) { return option.name; }).join(", ") + "." });
+  }
+  if (item.skill) lines.push({ label: "Skill", text: item.skill.from ? "One of " + item.skill.from.map(function (id) { const found = SKILLS.find(function (skill) { return skill[0] === id; }); return found ? found[1] : id; }).join(", ") + "." : "One skill of your choice." });
+  if (item.feat) lines.push({ label: "Feat", text: "An Origin feat of your choice." });
+  for (const trait of traits) if (trait.name !== "Darkvision" && !(item.choice && trait.name === item.choice.title)) lines.push({ label: trait.name + (trait.level > 1 ? " (level " + trait.level + ")" : ""), text: trait.text });
+  return lines;
+}
+
 // The species steps a brand new character answers: the species, then what that species needs.
 function speciesSteps(ctx) {
   const steps = [];
@@ -20733,7 +21069,7 @@ function speciesSteps(ctx) {
     id: "species", kind: "pick", title: "Species", required: true, count: 1, pool: "species_id",
     text: "Your species sets your size, Speed and special traits.",
     options: SPECIES.map(function (item) {
-      return { id: item.id, name: item.name, text: item.summary + " Speed " + item.speed + " ft, " + item.sizes.join(" or ") + "." };
+      return { id: item.id, name: item.name, text: item.summary + " Speed " + item.speed + " ft, " + item.sizes.join(" or ") + ".", details: speciesDetails(item) };
     })
   });
   const picked = Array.isArray(ctx.pending.answers.species) ? speciesById(ctx.pending.answers.species[0]) : null;
@@ -22071,7 +22407,15 @@ function backgroundSteps(ctx) {
     options: BACKGROUNDS.map(function (item) {
       const skills = item.skills.map(function (id) { return SKILLS.find(function (skill) { return skill[0] === id; })[1]; });
       const feat = featById(item.feat);
-      return { id: item.id, name: item.name, text: item.summary + " " + skills.join(" and ") + "; " + (feat ? feat.name : item.feat) + "." };
+      // The description first, then what the background gives, each on its own line.
+      const details = [
+        { label: "Skills", text: skills.join(" and ") + "." },
+        { label: "Tool", text: typeof item.tool === "string" ? item.tool + "." : "One kind of " + item.tool.group + " tool, your choice." },
+        { label: "Origin feat", text: (feat ? feat.name : item.feat) + (item.list ? " (" + item.list.charAt(0).toUpperCase() + item.list.slice(1) + " spells: two cantrips and one level 1 spell)" : "") + "." },
+        { label: "Ability scores", text: item.abilities.map(abilityName).join(", ") + ": +2 and +1, or +1 to each." },
+        { label: "Equipment", text: item.gear.map(function (line) { return (line[1] > 1 ? line[1] + " " : "") + line[0]; }).join(", ") + ", " + item.gold + " GP; or 50 GP." }
+      ];
+      return { id: item.id, name: item.name, text: item.summary, details: details };
     })
   });
   const picked = Array.isArray(ctx.pending.answers.background) ? backgroundById(ctx.pending.answers.background[0]) : null;
@@ -22079,7 +22423,9 @@ function backgroundSteps(ctx) {
   steps.push({
     id: "bg_abilities", kind: "pick", title: "Ability score increases", required: true, count: 1, pool: "bg_abilities",
     text: picked.name + " raises " + picked.abilities.map(abilityName).join(", ") + ": +2 and +1, or +1 to all three (no score goes above 20).",
-    options: backgroundAbilityOptions(picked)
+    options: backgroundAbilityOptions(picked),
+    abilities: picked.abilities.slice(),
+    scores: Object.assign({}, ctx.token.sheet.abilities, ctx.pending.answers.abilities && typeof ctx.pending.answers.abilities === "object" ? ctx.pending.answers.abilities : {})
   });
   if (typeof picked.tool === "object") {
     steps.push({ id: "bg_tool", kind: "pick", title: "Tool proficiency", required: true, count: 1, pool: "bg_tool", text: "Choose one kind of " + picked.tool.group + " tool or set.", options: backgroundToolOptions(picked) });
@@ -22470,6 +22816,7 @@ function sheetRollLabel(kind, key) {
 // ---------------------------------------------------------------
 
 const EFFECT_PRESETS = [
+  { name: "Surprised", dice: "", info: true, on: {}, note: "Caught off guard as the fight starts: Disadvantage on its Initiative roll. Taken off once it has rolled (2024 rules: no turn is skipped)." },
   { name: "Underwater", dice: "", info: true, resist: ["fire"], on: {}, note: "Fully underwater: Resistance to Fire. Ranged weapon attacks automatically miss beyond normal range and have Disadvantage within it." },
   { name: "Bless", dice: "1d4", mode: "none", against: "none", once: false, on: { attack: true, save: true, check: false, damage: false } },
   { name: "Bane", dice: "-1d4", mode: "none", against: "none", once: false, on: { attack: true, save: true, check: false, damage: false } },
@@ -23431,7 +23778,7 @@ function hostBuildView(name, isDm) {
       if (copy.character && typeof rulesNotesForViewer === "function") rulesNotesForViewer(copy.character, token, name);
       copy.death = token.death ? { s: token.death.s, f: token.death.f, stable: token.death.stable, dead: token.death.dead } : null;
       copy.acAuto = !!(token.character && token.character.autoAc === true);
-      copy.eco = ecoOn() ? { action: !!(token.eco && token.eco.action), bonus: !!(token.eco && token.eco.bonus), reaction: !!(token.eco && token.eco.reaction), moved: token.eco && token.eco.moved || 0, dash: token.eco && token.eco.dash || 0, speed: rulesSpeed(token), limit: rulesMoveLimit(token), prone: rulesIsProne(token), ignoreTerrain: rulesIgnoresTerrain(token), ignorePainted: rulesIgnoresPainted(token), turn: rulesOnItsTurn(token), mode: rulesMoveMode(token), modes: rulesMoveModes(token), drag: typeof grapDragCost === "function" && grapDragCost(token), swims: typeof tileSwims === "function" && tileSwims(token) } : null;
+      copy.eco = ecoOn() ? { free: !!(token.eco && token.eco.free), held: typeof ecoBinds === "function" ? ecoBinds(token, isDm) : true, action: !!(token.eco && token.eco.action), bonus: !!(token.eco && token.eco.bonus), reaction: !!(token.eco && token.eco.reaction), moved: token.eco && token.eco.moved || 0, dash: token.eco && token.eco.dash || 0, speed: rulesSpeed(token), limit: rulesMoveLimit(token), prone: rulesIsProne(token), ignoreTerrain: rulesIgnoresTerrain(token), ignorePainted: rulesIgnoresPainted(token), turn: rulesOnItsTurn(token), mode: rulesMoveMode(token), modes: rulesMoveModes(token), drag: typeof grapDragCost === "function" && grapDragCost(token), swims: typeof tileSwims === "function" && tileSwims(token) } : null;
     }
     if (isDm && token.kind === "creature" && typeof token.soulEntry === "string") {
       copy.soulEntry = token.soulEntry;
@@ -23523,7 +23870,10 @@ function hostBuildView(name, isDm) {
       height: state.map.height,
       cellSize: state.map.cellSize,
       fogOn: state.map.fogOn,
-      shareHealth: state.map.shareHealth === true
+      shareHealth: state.map.shareHealth === true,
+      hpAverage: state.map.hpAverage === true,
+      terrainHints: state.map.terrainHints === true,
+      creatureLimits: state.map.creatureLimits !== false
     },
     // Players get the fog as a bitmap (decoded on their page); the DM's own view keeps the plain list.
     revealed: isDm ? Object.assign({}, state.revealed) : {},
@@ -23540,7 +23890,7 @@ function hostBuildView(name, isDm) {
         const shape = Array.isArray(zone.squares) ? zone.squares.slice() : areaSquares(zone.area, center, zone.point).map(function (sq) { return sq.x + "," + sq.y; });
         return { id: zone.id, aura: zone.aura === true, name: zone.name, area: zone.area, point: zone.point, origin: zone.point, note: zone.note, ownerName: "", difficult: zone.difficult === true, hurts: !!zone.hit, hit: zone.hit ? { on: zone.hit.on.slice() } : null, spare: zone.spare || "none", canSpare: false, movable: false, cleared: Array.isArray(zone.cleared) ? zone.cleared.slice() : [], spellId: zoneSpellIdSafe(zone), squares: shape, endSquares: Array.isArray(zone.endSquares) ? zone.endSquares.slice() : undefined };
       }
-      return { id: zone.id, aura: zone.aura === true, name: zone.name, area: zone.area, point: zone.point, origin: center, note: zone.note, ownerName: owner ? owner.name : "", difficult: zone.difficult === true, hurts: !!zone.hit, hit: zone.hit ? { on: zone.hit.on.slice() } : null, spare: zone.spare || "none", canSpare: isDm || !!(owner && canControlToken(owner, name, false)), movable: zone.area.origin === "point" && !zone.follow && zoneSpellIdSafe(zone) !== "wall_of_fire", cleared: Array.isArray(zone.cleared) ? zone.cleared.slice() : [], spellId: zoneSpellIdSafe(zone), squares: Array.isArray(zone.squares) ? zone.squares.slice() : undefined, endSquares: Array.isArray(zone.endSquares) ? zone.endSquares.slice() : undefined };
+      return { id: zone.id, aura: zone.aura === true, name: zone.name, area: zone.area, point: zone.point, origin: center, note: zone.note, ownerName: owner ? owner.name : "", difficult: zone.difficult === true, hurts: !!zone.hit, hit: zone.hit ? { on: zone.hit.on.slice() } : null, spare: zone.spare || "none", alliesMode: zone.slow === true || zone.spare === "allies", canSpare: isDm || !!(owner && canControlToken(owner, name, false)), movable: zone.area.origin === "point" && !zone.follow && zoneSpellIdSafe(zone) !== "wall_of_fire", cleared: Array.isArray(zone.cleared) ? zone.cleared.slice() : [], spellId: zoneSpellIdSafe(zone), squares: Array.isArray(zone.squares) ? zone.squares.slice() : undefined, endSquares: Array.isArray(zone.endSquares) ? zone.endSquares.slice() : undefined };
     }),
     fx: hostFxForViewer(name, isDm),
     fxNow: Date.now(),   // the host's clock, so a page plays only events that just happened
@@ -23970,12 +24320,18 @@ function hostRollInitiative(token) {
   const initModes = [];
   if (token.effects.some(function (effect) { return effect.name === "Invisible"; })) initModes.push("adv");
   if (token.effects.some(function (effect) { return effect.incapacitated === true; })) initModes.push("dis");
+  // Surprised (set by the DM before combat): Disadvantage on this roll, then the mark goes.
+  const surprised = token.effects.some(function (effect) { return effect.name === "Surprised"; });
+  if (surprised) {
+    initModes.push("dis");
+    token.effects = token.effects.filter(function (effect) { return effect.name !== "Surprised"; });
+  }
   if (rulesAssassinLevel(token) > 0) initModes.push("adv");   // Assassinate
   if (typeof rulesInitAdv === "function" && rulesInitAdv(token)) initModes.push("adv");   // Feral Instinct, Remarkable Athlete
   const initRoll = rollD20(combineModes(initModes), token);
   const d20 = initRoll.kept;
   const bonusText = bonus < 0 ? " - " + Math.abs(bonus) : " + " + bonus;
-  const line = token.name + ": " + (initModes.length > 0 ? initRoll.text + " → " : "") + d20 + bonusText + " = " + (d20 + bonus) + (alert > 0 ? " (Alert +" + alert + ")" : "") + (jack > 0 ? " (Jack of All Trades +" + jack + ")" : "");
+  const line = token.name + ": " + (initModes.length > 0 ? initRoll.text + " → " : "") + d20 + bonusText + " = " + (d20 + bonus) + (alert > 0 ? " (Alert +" + alert + ")" : "") + (jack > 0 ? " (Jack of All Trades +" + jack + ")" : "") + (surprised ? " (Surprised)" : "");
   const extra = [];
   if (typeof rulesPerfectFocus === "function") {
     const focus = rulesPerfectFocus(token);
@@ -23995,6 +24351,26 @@ function hostRollInitiative(token) {
     if (charged !== "") extra.push(charged);
   }
   return { total: d20 + bonus, line: line, dice: initRoll.dice, extra: extra };
+}
+
+// Moves the initiative order on to the next creature (the DM's Next turn, or End turn from whoever's turn it is).
+function hostNextTurn(name) {
+  const init = state.initiative;
+  if (init.entries.length === 0) return null;
+  const leaving = init.started && init.entries[init.turn] ? hostFindToken(init.entries[init.turn].tokenId) : null;
+  init.started = true;
+  init.turn++;
+  if (init.turn >= init.entries.length) {
+    init.turn = 0;
+    init.round++;
+    init.entries = init.entries.filter(function (entry) { return entry.extra !== true; });   // Thief's Reflexes lasts the first round only
+    rulesTickRound();
+  }
+  const nowEntry = init.entries[init.turn];
+  const nowToken = nowEntry ? hostFindToken(nowEntry.tokenId) : null;
+  const turnLines = rulesTurnChange(leaving, nowToken);
+  if (turnLines.length > 0) addRoll(name, false, "Turn change", turnLines, []);
+  return null;
 }
 
 function hostHandleActionRaw(action, name, isDm) {
@@ -24396,6 +24772,11 @@ function hostHandleActionRaw(action, name, isDm) {
     const secret = isDm && action.secret === true;
     // Counterpunch is made with the Reaction (spent by the ability), not the Action.
     const asReaction = action.asReaction === true && typeof ethCounterpunchPending === "function" && ethCounterpunchPending(attacker, targets);
+    // A Legendary or lair action (freeAction, set by those handlers) does not spend the creature's Action.
+    if (typeof ecoCreatureAttack === "function" && !action.dryRun && !asReaction && action.reactionAttack !== true && !(isDm && action.freeAction === true)) {
+      const creatureError = ecoCreatureAttack(attacker, isDm);
+      if (creatureError) return creatureError;
+    }
     if (typeof ecoOnAttack === "function" && attack.kind !== "multi" && !action.dryRun && !asReaction && action.reactionAttack !== true) ecoOnAttack(attacker, attack);
 
     // Multiattack: each hit is one of the creature's own attacks. Hits go to the chosen targets in order.
@@ -24925,12 +25306,29 @@ function hostHandleActionRaw(action, name, isDm) {
     return null;
   }
 
+  // End turn: whoever controls the creature whose turn it is (a player for their character, the DM for anything).
+  if (type === "endTurn") {
+    const init = state.initiative;
+    if (!init.started || init.entries.length === 0) return "No fight is running.";
+    const current = init.entries[init.turn] ? hostFindToken(init.entries[init.turn].tokenId) : null;
+    if (!current || !canControlToken(current, name, isDm)) return "It is not your turn.";
+    return hostNextTurn(name);
+  }
+
   // Character rules (spells, resources, modules) check their own permissions.
   const ruled = rulesHandleAction(action, name, isDm);
   if (ruled !== undefined) return ruled;
 
   // Everything below is for the DM only.
   if (!isDm) return "Only the DM can do that.";
+
+  // Table rules the DM sets in DM tools: how level-up hit points go up, and whether players get terrain names on hover.
+  if (type === "tableSettings") {
+    if (typeof action.hpAverage === "boolean") state.map.hpAverage = action.hpAverage;
+    if (typeof action.terrainHints === "boolean") state.map.terrainHints = action.terrainHints;
+    if (typeof action.creatureLimits === "boolean") state.map.creatureLimits = action.creatureLimits;
+    return null;
+  }
 
   if (type === "setMap") {
     state.map.cellSize = cleanInt(action.cellSize, 10, 500, state.map.cellSize);
@@ -25222,24 +25620,7 @@ function hostHandleActionRaw(action, name, isDm) {
     return null;
   }
 
-  if (type === "initNext") {
-    const init = state.initiative;
-    if (init.entries.length === 0) return null;
-    const leaving = init.started && init.entries[init.turn] ? hostFindToken(init.entries[init.turn].tokenId) : null;
-    init.started = true;
-    init.turn++;
-    if (init.turn >= init.entries.length) {
-      init.turn = 0;
-      init.round++;
-      init.entries = init.entries.filter(function (entry) { return entry.extra !== true; });   // Thief's Reflexes lasts the first round only
-      rulesTickRound();
-    }
-    const nowEntry = init.entries[init.turn];
-    const nowToken = nowEntry ? hostFindToken(nowEntry.tokenId) : null;
-    const turnLines = rulesTurnChange(leaving, nowToken);
-    if (turnLines.length > 0) addRoll(name, false, "Turn change", turnLines, []);
-    return null;
-  }
+  if (type === "initNext") return hostNextTurn(name);
 
   if (type === "initClear") {
     state.initiative = { entries: [], turn: 0, round: 1, started: false };
@@ -29507,6 +29888,9 @@ function onNewView() {
   if (isDm) {
     byId("fogOn").checked = view.map.fogOn;
     byId("shareHealth").checked = view.map.shareHealth === true;
+    byId("terrainHints").checked = view.map.terrainHints === true;
+    byId("creatureLimits").checked = view.map.creatureLimits !== false;
+    byId("hpMethod").value = view.map.hpAverage === true ? "average" : "roll";
     if (document.activeElement !== byId("cellSize")) byId("cellSize").value = view.map.cellSize;
   }
 
@@ -29800,6 +30184,47 @@ byId("diceSoundToggle").addEventListener("change", function () {
   try { localStorage.setItem("ct_dicesound", byId("diceSoundToggle").checked ? "1" : "0"); } catch (err) { /* private browsing */ }
 });
 
+// Side panel width: dragged with the handle on its left edge, kept on this device (ct_sidewidth). The width is stored
+// before the text-size zoom, so it means the same at every text size.
+const SIDE_WIDTH_DEFAULT = 330;
+function sideZoom() {
+  if (document.body.classList.contains("text-xlarge")) return 1.3;
+  if (document.body.classList.contains("text-large")) return 1.15;
+  return 1;
+}
+function setSideWidth(width, save) {
+  const most = Math.max(SIDE_WIDTH_DEFAULT, Math.min(760, window.innerWidth * 0.6 / sideZoom()));
+  width = Math.round(Math.max(260, Math.min(most, width)));
+  document.documentElement.style.setProperty("--side-width", width + "px");
+  if (save) {
+    try { localStorage.setItem("ct_sidewidth", String(width)); } catch (err) { /* private browsing */ }
+  }
+}
+let savedSideWidth = NaN;
+try { savedSideWidth = parseInt(localStorage.getItem("ct_sidewidth"), 10); } catch (err) { /* private browsing */ }
+if (!isNaN(savedSideWidth)) setSideWidth(savedSideWidth, false);
+byId("sideResize").addEventListener("pointerdown", function (event) {
+  const handle = byId("sideResize");
+  handle.setPointerCapture(event.pointerId);
+  handle.classList.add("dragging");
+  function move(moveEvent) { setSideWidth((window.innerWidth - moveEvent.clientX) / sideZoom(), false); }
+  function end(endEvent) {
+    handle.classList.remove("dragging");
+    handle.removeEventListener("pointermove", move);
+    handle.removeEventListener("pointerup", end);
+    handle.removeEventListener("pointercancel", end);
+    setSideWidth((window.innerWidth - endEvent.clientX) / sideZoom(), true);
+  }
+  handle.addEventListener("pointermove", move);
+  handle.addEventListener("pointerup", end);
+  handle.addEventListener("pointercancel", end);
+  event.preventDefault();
+});
+byId("sideResize").addEventListener("dblclick", function () {
+  setSideWidth(SIDE_WIDTH_DEFAULT, false);
+  try { localStorage.removeItem("ct_sidewidth"); } catch (err) { /* private browsing */ }
+});
+
 // Settings window (theme, text size, colour-blind mode, enhanced graphics, reduce motion, dice sounds): opened from the top bar; closes with its button, a click
 // outside the card, or Esc.
 function setSettingsOpen(open) {
@@ -29826,6 +30251,15 @@ if (window.ResizeObserver) {
 // ---------------------------------------------------------------
 // Drawing the map
 // ---------------------------------------------------------------
+
+// For dragging the map: a mouse or finger can send several moves per screen frame. With enhanced graphics each draw is a GPU
+// frame, so the moves are gathered and drawn once, on the next frame. The standard map draws at once, as before.
+let drawSoonFrame = 0;
+function drawSoon() {
+  if (!(typeof gfxActive === "function" && gfxActive())) return draw();
+  if (drawSoonFrame) return;
+  drawSoonFrame = requestAnimationFrame(function () { drawSoonFrame = 0; draw(); });
+}
 
 function draw() {
   if (!view) return;
@@ -30002,8 +30436,35 @@ function drawWalls(cell) {
 // flame marks), slippery ice (pale cyan with glints), a DM hazard (purple with a "!").
 const TILE_FILL = { difficult: "rgba(160, 110, 50, 0.18)", water: "rgba(60, 140, 220, 0.30)", deep: "rgba(25, 70, 160, 0.50)", fire: "rgba(230, 90, 20, 0.38)", ice: "rgba(190, 235, 255, 0.40)", hazard: "rgba(150, 70, 200, 0.32)" };
 
+canvas.addEventListener("pointerleave", function () { const hint = byId("tileHint"); if (hint) hint.classList.add("hiddenRow"); });
+
+// The ground name under the pointer, for players when the DM allows it (Table rules: "Players see what kind of ground ...").
+function terrainHintAt(event) {
+  const hint = byId("tileHint");
+  if (!hint) return;
+  const show = function (text) {
+    hint.textContent = text;
+    hint.classList.toggle("hiddenRow", text === "");
+    if (text !== "") {
+      const area = byId("mapArea").getBoundingClientRect();
+      hint.style.left = (event.clientX - area.left + 14) + "px";
+      hint.style.top = (event.clientY - area.top + 14) + "px";
+    }
+  };
+  if (!view || view.you.isDm || view.map.terrainHints !== true || !view.terrain) return show("");
+  const cell = cellFromEvent(event);
+  const value = cell.inside ? view.terrain[cell.x + "," + cell.y] : undefined;
+  if (value === undefined) return show("");
+  const kind = tileKind(value) || "difficult";
+  const hazard = kind === "hazard" ? tileHazard(value) : null;
+  show(hazard && hazard.name ? hazard.name : (TILE_NAMES[kind] || "Difficult Terrain"));
+}
+
 function drawTerrain(cell) {
   if (!view.terrain) return;
+  // Players do not see painted ground drawn over the map (the map picture shows it); with the DM's "Table rules" switch on,
+  // hovering a painted square names it (terrainHintAt). Playtest 2026-11-20.
+  if (!view.you.isDm) return;
   ctx.save();
   for (const key of Object.keys(view.terrain)) {
     const parts = key.split(",");
@@ -30528,11 +30989,11 @@ canvas.addEventListener("pointermove", function (event) {
     camera.x += now.midX - pinch.midX;
     camera.y += now.midY - pinch.midY;
     pinch = now;
-    draw();
+    drawSoon();
     return;
   }
 
-  if (!drag) return;
+  if (!drag) { terrainHintAt(event); return; }
 
   if (drag.kind === "ruler") {
     const cell = cellFromEvent(event);
@@ -30580,7 +31041,7 @@ canvas.addEventListener("pointermove", function (event) {
       if (!drag.samples) drag.samples = [];
       drag.samples.push({ t: performance.now(), x: event.clientX, y: event.clientY });
       if (drag.samples.length > 6) drag.samples.shift();
-      draw();
+      drawSoon();
     }
   }
 });
@@ -30977,7 +31438,7 @@ function renderPick() {
   } else if (pick.kind === "attack") {
     const noun = pick.repeat ? "hits" : "targets";
     byId("pickText").textContent = pick.label + ": tap up to " + pick.maxTargets + " " + noun + " (" + count + " of " + pick.maxTargets + " chosen)";
-    byId("pickGo").textContent = pick.attackKind === "salvage" ? "Ask the DM" : (pick.attackKind === "effect" ? "Apply" : (pick.attackKind === "spell" ? "Cast" : "Roll"));
+    byId("pickGo").textContent = pick.attackKind === "salvage" ? "Ask the DM" : (pick.attackKind === "effect" || pick.attackKind === "classUse" ? "Apply" : (pick.attackKind === "spell" ? "Cast" : "Roll"));
     show(byId("pickAll"), false);
   } else if (pick.kind === "join") {
     byId("pickText").textContent = "Add to combat: tap each token joining the fight (" + count + " chosen)";
@@ -31124,7 +31585,9 @@ byId("pickGo").addEventListener("click", function () {
   if (pick === null) return;
   if (pick.point && !pick.origin) return showStatus("Tap the tile where it appears first.");
   if (pickedIds.length === 0 && !pick.point && !(pick.area && pick.origin !== null)) return showStatus(pick.area ? "Tap a tile to place the area first." : "Tap at least one token on the map first.");
-  if (pick.kind === "attack" && pick.attackKind === "salvage") {
+  if (pick.kind === "attack" && pick.attackKind === "classUse") {
+    send(Object.assign({}, pick.classUse, { targetIds: pickedIds.slice() }));
+  } else if (pick.kind === "attack" && pick.attackKind === "salvage") {
     send({ type: "salvageRequest", tokenId: pick.attackerId, targetId: pickedIds[0] });
   } else if (pick.kind === "attack" && pick.attackKind === "spell") {
     const message = {
@@ -31167,6 +31630,9 @@ byId("pickGo").addEventListener("click", function () {
 
 function renderInitiative() {
   const init = view.initiative;
+  // End turn (top left): for the player whose character is up, and for the DM when the creature up is theirs to run.
+  const upNow = init.started === true && init.currentTokenId !== undefined && init.currentTokenId !== null ? findToken(init.currentTokenId) : null;
+  show(byId("endTurn"), !!upNow && upNow.mine === true && (!view.you.isDm || upNow.kind !== "player" || upNow.owner === "" || upNow.owner === view.you.name));
   const strip = byId("initStrip");
   strip.textContent = "";
   byId("roundLabel").textContent = "Round " + init.round;
@@ -31218,9 +31684,10 @@ function renderInitiative() {
   }
 }
 
-byId("initRollButton").addEventListener("click", function () {
+// Heroic Inspiration (DM): give the selected character theirs; it shows whether they already have it.
+byId("inspireGive").addEventListener("click", function () {
   if (selectedId === null) return;
-  send({ type: "initRoll", tokenId: selectedId, bonus: byId("initBonus").value });
+  send({ type: "useResource", tokenId: selectedId, poolId: "heroic_inspiration", amount: 1, restore: true });
 });
 
 byId("startCombat").addEventListener("click", function () {
@@ -31231,6 +31698,8 @@ byId("startCombat").addEventListener("click", function () {
 byId("combatJoin").addEventListener("click", function () {
   startPick({ kind: "join" });
 });
+
+byId("endTurn").addEventListener("click", function () { send({ type: "endTurn" }); });
 
 byId("initNext").addEventListener("click", function () {
   send({ type: "initNext" });
@@ -31293,7 +31762,13 @@ function renderSelected() {
   show(byId("editFields"), token.mine);
   // Players get no effect, initiative or attack editing: the engine does that and the DM has the override.
   show(byId("effectRow"), view.you.isDm);
-  show(byId("initRow"), view.you.isDm);
+  const inspiration = token.character && Array.isArray(token.character.pools) ? token.character.pools.find(function (pool) { return pool.id === "heroic_inspiration"; }) : null;
+  show(byId("inspireRow"), view.you.isDm && !!inspiration);
+  if (inspiration) {
+    const has = inspiration.max - inspiration.used > 0;
+    byId("inspireText").textContent = has ? "Has Heroic Inspiration" : "No Heroic Inspiration";
+    byId("inspireGive").disabled = has;
+  }
   show(byId("attackOpen"), view.you.isDm);
   if (!view.you.isDm) byId("effectCustom").classList.add("hiddenRow");
   if (!token.mine) return;
@@ -31448,6 +31923,27 @@ function getActingToken() {
   return null;
 }
 
+// Attack rows are compact: the name and the Use button. Tapping the name opens the details (to hit, damage,
+// targets) and, for spells, the upcast level. Open rows stay open while the panel redraws.
+const openAttackRows = new Set();
+function makeAttackFold(row, title, key) {
+  title.classList.add("attackFold");
+  title.setAttribute("role", "button");
+  title.setAttribute("tabindex", "0");
+  if (openAttackRows.has(key)) row.classList.add("open");
+  title.setAttribute("aria-expanded", row.classList.contains("open") ? "true" : "false");
+  function toggle() {
+    if (openAttackRows.has(key)) openAttackRows.delete(key);
+    else openAttackRows.add(key);
+    row.classList.toggle("open", openAttackRows.has(key));
+    title.setAttribute("aria-expanded", openAttackRows.has(key) ? "true" : "false");
+  }
+  title.addEventListener("click", toggle);
+  title.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggle(); }
+  });
+}
+
 function renderAttacks() {
   if (typeof renderSoulSection === "function") renderSoulSection();
   const acting = getActingToken();
@@ -31461,7 +31957,9 @@ function renderAttacks() {
   const list = byId("attackList");
   list.textContent = "";
   const spellAttacks = acting.character && Array.isArray(acting.character.spellAttacks) ? acting.character.spellAttacks : [];
-  if (acting.attacks.length === 0 && spellAttacks.length === 0) {
+  const supportCount = (acting.character && Array.isArray(acting.character.spellSupport) ? acting.character.spellSupport.length : 0)
+    + (acting.character && Array.isArray(acting.character.classUses) ? acting.character.classUses.filter(function (use) { return !use.riderOnly; }).length : 0);
+  if (acting.attacks.length === 0 && spellAttacks.length === 0 && supportCount === 0) {
     const empty = document.createElement("div");
     empty.className = "muted small";
     empty.textContent = "No attacks yet. Add one below.";
@@ -31479,18 +31977,20 @@ function renderAttacks() {
     info.className = "attackInfo";
     const title = document.createElement("div");
     title.className = "attackTitle";
-    title.textContent = attack.name;
+    // A long note in brackets ("Grapple (Unarmed Strike, target within 5 ft.)") moves into the fold-out to keep the row short.
+    const bracket = /^(.{3,}?) \((.{15,})\)$/.exec(attack.name);
+    title.textContent = bracket ? bracket[1] : attack.name;
     const numbers = document.createElement("div");
     numbers.className = "attackNumbers";
-    let details = "";
+    let details = bracket ? bracket[2] : "";
     if (attack.kind === "multi" && attack.choose) {
-      details = "Choose the attacks  ·  up to " + attack.targets + " hits, tap targets, hits go in order";
+      details = (details === "" ? "" : details + "  ·  ") + "Choose the attacks  ·  up to " + attack.targets + " hits, tap targets, hits go in order";
     } else if (attack.kind === "multi") {
-      details = attack.parts.map(function (part) { return part.count + " " + part.name; }).join(" + ") + "  ·  tap up to " + attack.targets + " targets, hits go in order";
+      details = (details === "" ? "" : details + "  ·  ") + attack.parts.map(function (part) { return part.count + " " + part.name; }).join(" + ") + "  ·  tap up to " + attack.targets + " targets, hits go in order";
     } else if (attack.kind === "save") {
-      details = "DC " + attack.dc + " " + abilityName(attack.ability) + " save  ·  " + attack.damage + (attack.damageType ? " " + attack.damageType : "") + (attack.half ? "  ·  half on save" : "");
+      details = (details === "" ? "" : details + "  ·  ") + "DC " + attack.dc + " " + abilityName(attack.ability) + " save  ·  " + attack.damage + (attack.damageType ? " " + attack.damageType : "") + (attack.half ? "  ·  half on save" : "");
     } else if (attack.kind === "attack") {
-      details = formatBonus(attack.bonus) + " to hit  ·  " + attack.damage + (attack.damageType ? " " + attack.damageType : "");
+      details = (details === "" ? "" : details + "  ·  ") + formatBonus(attack.bonus) + " to hit  ·  " + attack.damage + (attack.damageType ? " " + attack.damageType : "");
     }
     if (Array.isArray(attack.extras) && attack.extras.length > 0) details += "  ·  plus " + attack.extras.map(function (piece) { return piece.dice + (piece.type ? " " + piece.type : ""); }).join(", ");
     if (attack.limit) {
@@ -31509,6 +32009,7 @@ function renderAttacks() {
     numbers.textContent = details;
     info.appendChild(title);
     info.appendChild(numbers);
+    if (details !== "") makeAttackFold(row, title, acting.id + "|a|" + attack.id);
 
     const useButton = document.createElement("button");
     useButton.type = "button";
@@ -31601,7 +32102,7 @@ function renderAttacks() {
 
     const removeButton = document.createElement("button");
     removeButton.type = "button";
-    removeButton.className = view.you.isDm ? "" : "hiddenRow";
+    removeButton.className = view.you.isDm ? "attackRemove" : "attackRemove hiddenRow";
     removeButton.textContent = "✕";
     removeButton.setAttribute("aria-label", "Remove " + attack.name);
     removeButton.addEventListener("click", function () {
@@ -31614,6 +32115,7 @@ function renderAttacks() {
     list.appendChild(row);
   }
   renderSpellAttacks(list, acting, spellAttacks);
+  renderSupportList(list, acting);
   const riderUses = acting.character && Array.isArray(acting.character.classUses) ? acting.character.classUses.filter(function (use) { return use.rider; }) : [];
   if (riderUses.length > 0) {
     const hint = document.createElement("div");
@@ -31628,8 +32130,8 @@ function renderAttacks() {
 function renderSpellAttacks(list, acting, spellAttacks) {
   if (spellAttacks.length === 0) return;
   const head = document.createElement("div");
-  head.className = "muted small";
-  head.textContent = "Spells (cast with a slot as in the Spells tab)";
+  head.className = "muted small attackGroupHead";
+  head.textContent = "Attack spells";
   list.appendChild(head);
   for (const spell of spellAttacks) {
     const row = document.createElement("div");
@@ -31638,14 +32140,15 @@ function renderSpellAttacks(list, acting, spellAttacks) {
     info.className = "attackInfo";
     const title = document.createElement("div");
     title.className = "attackTitle";
-    title.textContent = spell.name + (spell.concentration ? " (concentration)" : "");
+    title.textContent = spell.name;
     const numbers = document.createElement("div");
     numbers.className = "attackNumbers";
     const how = spell.summon ? "summon, tap the tile where it appears" : (spell.kind === "save" ? "DC " + spell.dc + " " + abilityName(spell.ability) + " save" : formatBonus(spell.attack) + " to hit");
-    numbers.textContent = (spell.level === 0 ? "Cantrip" : "Level " + spell.level) + "  ·  " + how + (spell.damage ? "  ·  " + spell.damage : "") + (spell.maxTargets > 1 ? "  ·  up to " + spell.maxTargets + " targets" : "");
+    numbers.textContent = (spell.level === 0 ? "Cantrip" : "Level " + spell.level) + (spell.concentration ? "  ·  Concentration" : "") + "  ·  " + how + (spell.damage ? "  ·  " + spell.damage : "") + (spell.repeat === true && spell.maxTargets > 1 ? "  ·  " + spell.maxTargets + " beams, same target allowed" : (spell.maxTargets > 1 ? "  ·  up to " + spell.maxTargets + " targets" : ""));
     info.appendChild(title);
     info.appendChild(numbers);
     row.appendChild(info);
+    makeAttackFold(row, title, acting.id + "|s|" + spell.classId + "|" + spell.spellId);
 
     let levelSelect = null;
     if (spell.level > 0 && spell.topLevel > spell.level) {
@@ -31656,13 +32159,26 @@ function renderSpellAttacks(list, acting, spellAttacks) {
         option.textContent = "L" + level;
         levelSelect.appendChild(option);
       }
-      row.appendChild(levelSelect);
+      // The upcast level sits in the fold-out with the details.
+      const upcast = document.createElement("label");
+      upcast.className = "attackUpcast";
+      upcast.appendChild(document.createTextNode("Cast at "));
+      upcast.appendChild(levelSelect);
+      info.appendChild(upcast);
     }
     const useButton = document.createElement("button");
     useButton.type = "button";
     useButton.className = "primary";
     useButton.textContent = "Cast";
     useButton.addEventListener("click", function () {
+      if (spell.selfZone) {
+        // An aura around the caster (Spirit Guardians): no targets to pick, it starts where the caster stands.
+        send({
+          type: "castSpell", tokenId: acting.id, classId: spell.classId, spellId: spell.spellId, targetIds: [], mode: "normal",
+          slotLevel: levelSelect ? parseInt(levelSelect.value, 10) : spell.level, point: { x: acting.x, y: acting.y }
+        });
+        return;
+      }
       startPick({
         kind: "attack",
         attackerId: acting.id,
@@ -31670,12 +32186,125 @@ function renderSpellAttacks(list, acting, spellAttacks) {
         label: acting.name + ", " + spell.name,
         attackKind: "spell",
         maxTargets: spell.maxTargets,
-        repeat: false,
+        repeat: spell.repeat === true,
         area: spell.area, rangeFeet: spell.rangeFeet, point: spell.summon === true,
         spell: { classId: spell.classId, spellId: spell.spellId, slotLevel: levelSelect ? parseInt(levelSelect.value, 10) : (spell.level === 0 ? 0 : spell.level) }
       });
     });
     row.appendChild(useButton);
+    list.appendChild(row);
+  }
+}
+
+// The second list under Attacks: healing, buffs and other combat abilities that are not damage attacks.
+// Class and species features (Second Wind, Lay on Hands, Healing Hands...) and support spells (Cure Wounds, Bless, Longstrider).
+// A feature that needs points or a tile chosen opens the character's Actions tab instead.
+function renderSupportList(list, acting) {
+  const character = acting.character;
+  if (!character) return;
+  const uses = Array.isArray(character.classUses) ? character.classUses.filter(function (use) { return !use.riderOnly; }) : [];
+  const spells = Array.isArray(character.spellSupport) ? character.spellSupport : [];
+  if (uses.length === 0 && spells.length === 0) return;
+  const head = document.createElement("div");
+  head.className = "muted small attackGroupHead";
+  head.textContent = "Healing, buffs and other abilities";
+  list.appendChild(head);
+
+  for (const use of uses) {
+    const row = document.createElement("div");
+    row.className = "attackRow supportRow";
+    const info = document.createElement("div");
+    info.className = "attackInfo";
+    const title = document.createElement("div");
+    title.className = "attackTitle";
+    title.textContent = use.name;
+    const numbers = document.createElement("div");
+    numbers.className = "attackNumbers";
+    const actionName = { action: "Action", bonus: "Bonus Action", reaction: "Reaction", free: "Free" }[use.action] || "Action";
+    let details = actionName + "  ·  " + use.feature;
+    if (use.max !== null) details += "  ·  " + use.left + " / " + use.max + " " + use.poolName;
+    if (use.text) details += "  ·  " + use.text;
+    numbers.textContent = details;
+    info.appendChild(title);
+    info.appendChild(numbers);
+    row.appendChild(info);
+    makeAttackFold(row, title, acting.id + "|u|" + use.classId + "|" + use.id);
+
+    const useButton = document.createElement("button");
+    useButton.type = "button";
+    useButton.className = "primary";
+    useButton.textContent = "Use";
+    if (use.max !== null && use.left < use.cost) useButton.disabled = true;
+    useButton.addEventListener("click", function () {
+      const base = { type: "classUse", tokenId: acting.id, classId: use.classId, featureId: use.featureId, useId: use.id };
+      if (use.variable || use.needsTile) {
+        selectedId = acting.id;
+        openCharacter();
+        charTab = "classuse";
+        renderCharacter();
+        return;
+      }
+      if (use.needs === "targets" || use.needs === "allies") {
+        startPick({
+          kind: "attack", attackerId: acting.id, attackId: use.id, label: acting.name + ", " + use.name, attackKind: "classUse",
+          maxTargets: Math.max(1, use.maxTargets), repeat: false, classUse: base
+        });
+        return;
+      }
+      send(base);
+    });
+    row.appendChild(useButton);
+    list.appendChild(row);
+  }
+
+  for (const spell of spells) {
+    const row = document.createElement("div");
+    row.className = "attackRow supportRow";
+    const info = document.createElement("div");
+    info.className = "attackInfo";
+    const title = document.createElement("div");
+    title.className = "attackTitle";
+    title.textContent = spell.name;
+    const numbers = document.createElement("div");
+    numbers.className = "attackNumbers";
+    numbers.textContent = (spell.level === 0 ? "Cantrip" : "Level " + spell.level) + (spell.concentration ? "  ·  Concentration" : "") + "  ·  " + spell.castingTime + (spell.selfOnly ? "  ·  self" : (spell.maxTargets > 1 ? "  ·  up to " + spell.maxTargets + " creatures" : "")) + (spell.what ? "  ·  " + spell.what : "");
+    info.appendChild(title);
+    info.appendChild(numbers);
+    row.appendChild(info);
+    makeAttackFold(row, title, acting.id + "|h|" + spell.classId + "|" + spell.spellId);
+
+    let levelSelect = null;
+    if (spell.level > 0 && spell.topLevel > spell.level) {
+      levelSelect = document.createElement("select");
+      for (let level = spell.level; level <= spell.topLevel; level++) {
+        const option = document.createElement("option");
+        option.value = String(level);
+        option.textContent = "L" + level;
+        levelSelect.appendChild(option);
+      }
+      const upcast = document.createElement("label");
+      upcast.className = "attackUpcast";
+      upcast.appendChild(document.createTextNode("Cast at "));
+      upcast.appendChild(levelSelect);
+      info.appendChild(upcast);
+    }
+    const castButton = document.createElement("button");
+    castButton.type = "button";
+    castButton.className = "primary";
+    castButton.textContent = "Cast";
+    castButton.addEventListener("click", function () {
+      const slotLevel = levelSelect ? parseInt(levelSelect.value, 10) : spell.level;
+      if (spell.selfOnly) {
+        send({ type: "castSpell", tokenId: acting.id, classId: spell.classId, spellId: spell.spellId, slotLevel: slotLevel, targetIds: [acting.id], mode: "normal" });
+        return;
+      }
+      startPick({
+        kind: "attack", attackerId: acting.id, attackId: spell.spellId, label: acting.name + ", " + spell.name, attackKind: "spell",
+        maxTargets: spell.maxTargets, repeat: false, area: spell.area, rangeFeet: spell.rangeFeet, point: false,
+        spell: { classId: spell.classId, spellId: spell.spellId, slotLevel: slotLevel }
+      });
+    });
+    row.appendChild(castButton);
     list.appendChild(row);
   }
 }
@@ -32723,6 +33352,10 @@ function sendMapSettings() {
 byId("cellApply").addEventListener("click", sendMapSettings);
 byId("fogOn").addEventListener("change", sendMapSettings);
 byId("shareHealth").addEventListener("change", sendMapSettings);
+// Table rules (DM tools): level-up hit points, and terrain names on hover for players.
+byId("terrainHints").addEventListener("change", function () { send({ type: "tableSettings", terrainHints: byId("terrainHints").checked }); });
+byId("creatureLimits").addEventListener("change", function () { send({ type: "tableSettings", creatureLimits: byId("creatureLimits").checked }); });
+byId("hpMethod").addEventListener("change", function () { send({ type: "tableSettings", hpAverage: byId("hpMethod").value === "average" }); });
 
 // Wall painting modes and the wall kind each paints.
 const WALL_MODES = { wallOn: "wall", lowOn: "low", threeOn: "three", doorOn: "door" };
@@ -32764,6 +33397,12 @@ function setFogMode(mode) {
   byId("wallOn").classList.toggle("active", mode === "wallOn");
   byId("lowOn").classList.toggle("active", mode === "lowOn");
   byId("wallOff").classList.toggle("active", mode === "wallOff");
+  // The quick bar's list shows what is being painted, and goes back to its prompt when painting stops or is fog.
+  const quick = byId("qtPaint");
+  if (mode === "terrainOn") quick.value = "tile:" + byId("tileKind").value;
+  else if (["terrainOff", "wallOn", "lowOn", "threeOn", "doorOn", "wallOff"].indexOf(mode) !== -1) quick.value = mode;
+  else quick.value = "";
+  quick.classList.toggle("active", quick.value !== "");
 }
 
 function startFogMode(mode) {
@@ -32788,6 +33427,19 @@ byId("qtHide").addEventListener("click", function () { if (fogMode === "hide") s
 byId("qtStop").addEventListener("click", function () { setFogMode(null); });
 byId("qtUndo").addEventListener("click", function () { send({ type: "fogUndo" }); });
 byId("qtBrush").addEventListener("change", function () { byId("fogBrush").value = byId("qtBrush").value; });
+// Ground and walls from the quick bar: the same painting as the Map and fog section (a ground choice also sets its Tile list).
+byId("qtPaint").addEventListener("change", function () {
+  const choice = byId("qtPaint").value;
+  if (choice === "") return setFogMode(null);
+  byId("fogTool").value = "brush";
+  if (choice.indexOf("tile:") === 0) {
+    byId("tileKind").value = choice.slice(5);
+    show(byId("hazardFields"), byId("tileKind").value === "hazard");
+    startFogMode("terrainOn");
+  } else {
+    startFogMode(choice);
+  }
+});
 byId("fogBrush").addEventListener("change", function () { byId("qtBrush").value = byId("fogBrush").value; });
 
 // Keyboard: R reveal, H hide, Esc stop (fog painting and the ruler), Ctrl+Z undo the last fog change. Not while typing in a box.
@@ -33033,9 +33685,19 @@ function renderEconomy(token) {
   const bar = byId("ecoBar");
   if (!bar) return;
   bar.textContent = "";
-  const eco = token.mine && token.kind === "player" ? token.eco : null;
+  // Players see their own turn bar; the DM sees it for a creature too while creatures are held to their turn.
+  const eco = token.mine && (token.kind === "player" || (view.you.isDm && view.map.creatureLimits !== false)) ? token.eco : null;
   show(bar, !!eco);
   if (!eco) return;
+  if (token.kind !== "player" && view.you.isDm) {
+    const free = document.createElement("button");
+    free.type = "button";
+    free.className = "ecoChip" + (eco.free ? " active" : "");
+    free.textContent = eco.free ? "No limits: on" : "No limits";
+    free.title = "DM override (Ignore limits this turn): this creature is not held to one Action, Bonus Action, Reaction or its Speed until its next turn starts";
+    free.addEventListener("click", function () { send({ type: "ecoToggle", tokenId: token.id, kind: "free", value: !eco.free }); });
+    bar.appendChild(free);
+  }
   for (const kind of ["action", "bonus", "reaction"]) {
     const chip = document.createElement("button");
     chip.type = "button";
@@ -33213,6 +33875,7 @@ function gfxCalm() {
 
 // Lite: a very large map (over 40,000 squares) or a crowd (over 150 tokens): fewer moving parts, no blur, no clouds over the fog.
 function gfxLite() {
+  if (GFX.slow) return true;   // this device could not keep up (gfxWatchSpeed)
   if (!view || !view.map) return false;
   const squares = Math.ceil(view.map.width / view.map.cellSize) * Math.ceil(view.map.height / view.map.cellSize);
   return squares > 40000 || view.tokens.length > 150;
@@ -33220,10 +33883,13 @@ function gfxLite() {
 
 // Pixels drawn per screen pixel: at least two (sharp edges and text even on an ordinary screen), at most three; on a very large map
 // or with a crowd, the screen's own density, to save work.
+// Playtest (2026-11-20): drawing at twice the pixels on an ordinary screen, and three times on a dense one, cost too much GPU time
+// on ordinary computers. Now: the screen's own density, at most 2; 1 when the device has been found too slow (GFX.slow).
 function gfxResolution() {
   const screen = window.devicePixelRatio || 1;
-  if (typeof view !== "undefined" && view && gfxLite()) return Math.min(2, screen);
-  return Math.min(3, Math.max(2, screen));
+  if (GFX.slow) return 1;
+  if (typeof view !== "undefined" && view && gfxLite()) return Math.min(1.5, Math.max(1, screen));
+  return Math.min(2, Math.max(1, screen));
 }
 
 function gfxWanted() {
@@ -33239,9 +33905,24 @@ function gfxSupported() {
   if (typeof PIXI === "undefined") return "the graphics library did not load";
   try {
     const probe = document.createElement("canvas");
-    if (probe.getContext("webgl2") || probe.getContext("webgl")) return "";
+    const gl = probe.getContext("webgl2") || probe.getContext("webgl");
+    if (gl) return gfxSoftwareOnly(gl) ? "this browser is drawing without the graphics card (hardware acceleration is off), which makes the enhanced map very slow; turn on hardware acceleration in the browser's settings and reload" : "";
   } catch (err) { /* treated as not supported */ }
   return "this device or browser cannot draw with the GPU";
+}
+
+// Does the browser draw WebGL on the processor instead of the graphics card (Chrome's SwiftShader, Mesa's llvmpipe, Windows' basic
+// render driver)? That happens when hardware acceleration is off or the graphics driver is blocked, and every frame then takes a
+// large share of a second. Automated test browsers are let through (they run this way on purpose).
+function gfxSoftwareOnly(gl) {
+  if (navigator.webdriver === true) return false;
+  try {
+    const info = gl.getExtension("WEBGL_debug_renderer_info");
+    const name = String(info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+    return /swiftshader|llvmpipe|softpipe|basic render|software/i.test(name);
+  } catch (err) {
+    return false;
+  }
 }
 
 function gfxSetLabel() {
@@ -33354,7 +34035,7 @@ async function gfxStart() {
   await gfxLoadTextures();
   // Animations (gliding moves, pulsing rings) run on the library's clock, at most 30 frames a second, only while something moves.
   app.ticker.maxFPS = 30;
-  app.ticker.add(function () { gfxAnimate(); });
+  app.ticker.add(function () { gfxWatchSpeed(app.ticker.deltaMS); gfxAnimate(); });
   GFX.starting = false;
   GFX.ready = true;
   // If the switch was turned off while the GPU was being set up, let it go again.
@@ -33363,6 +34044,34 @@ async function gfxStart() {
     return;
   }
   draw();
+}
+
+// If this device cannot keep up (frames taking over 80 ms on average across about two seconds of animation), switch to the light
+// mode for the rest of the visit: the screen's own pixels at 1, fewer moving parts, no blur or clouds. If even that runs at over
+// 150 ms a frame, go back to the standard map. Each step is said once in the status line.
+function gfxWatchSpeed(deltaMS) {
+  if (!(deltaMS > 0) || navigator.webdriver === true) return;   // test browsers draw on the processor on purpose
+  const watch = GFX.speed || (GFX.speed = { frames: 0, total: 0 });
+  watch.frames += 1;
+  watch.total += Math.min(deltaMS, 1000);
+  if (watch.frames < 45) return;
+  const average = watch.total / watch.frames;
+  watch.frames = 0;
+  watch.total = 0;
+  if (!GFX.slow && average > 80) {
+    // First step: the light mode for the rest of the visit.
+    GFX.slow = true;
+    GFX.signs = {};
+    GFX.seenRefs = {};
+    if (typeof showStatus === "function") showStatus("Enhanced graphics switched to a lighter mode: this device was struggling to keep up.");
+    draw();
+  } else if (GFX.slow && average > 150) {
+    // Still far too slow: back to the standard map (the switch in Settings turns it on again).
+    gfxSetOn(false);
+    gfxSetLabel();
+    if (typeof showStatus === "function") showStatus("Enhanced graphics were too slow on this device, so the standard map is back on. You can switch them on again in Settings.");
+    draw();
+  }
 }
 
 function gfxStop() {
@@ -33497,6 +34206,13 @@ function gfxMapTexture(picture) {
   }
   if (GFX.mapTexture) GFX.mapTexture.destroy(true);
   GFX.mapTexture = PIXI.Texture.from(source);
+  // Mipmaps: a smaller copy of the picture for each zoom-out step, so a big map zoomed out reads few pixels per screen pixel
+  // (much less GPU work, and no shimmering).
+  try {
+    GFX.mapTexture.source.autoGenerateMipmaps = true;
+    GFX.mapTexture.source.style.mipmapFilter = "linear";
+    GFX.mapTexture.source.updateMipmaps();
+  } catch (err) { /* draw without them */ }
   GFX.mapTextureSource = picture;
   return GFX.mapTexture;
 }
@@ -33506,8 +34222,12 @@ function gfxMapTexture(picture) {
 // ---------------------------------------------------------------
 
 // Zoom in steps of about 12%: line widths are worked out per step, so an eased zoom rebuilds a layer only now and then.
+// While an eased zoom is running the step stays where it was, so the layers that depend on it (grid line widths, ground and
+// area outlines, soft shapes) are not rebuilt on every frame of the zoom; they are rebuilt once when it settles.
 function gfxZoomStep() {
-  return Math.round(Math.log(camera.zoom) * 8);
+  if (GFX.cameraMove && GFX.cameraMove.kind === "zoom" && typeof GFX.settledStep === "number") return GFX.settledStep;
+  GFX.settledStep = Math.round(Math.log(camera.zoom) * 8);
+  return GFX.settledStep;
 }
 function gfxStepZoom() {
   return Math.exp(gfxZoomStep() / 8);
@@ -33592,9 +34312,9 @@ function gfxCameraFrame() {
       move.vy *= keep;
       done = Math.hypot(move.vx, move.vy) < 0.02;
     }
+    if (done) GFX.cameraMove = null;   // before drawing, so the settled zoom rebuilds what depends on it
     draw();
-    if (done) GFX.cameraMove = null;
-    else gfxCameraFrame();
+    if (!done) gfxCameraFrame();
   });
 }
 
@@ -33676,10 +34396,18 @@ function gfxPatterns() {
 }
 
 function gfxTerrain(cell) {
-  if (GFX.signs.terrain && gfxSame("terrain", [view.terrain], cell + "|" + gfxZoomStep() + "|" + gfxLite())) return;
-  const sign = JSON.stringify(view.terrain || {}) + "|" + cell + "|" + gfxZoomStep() + "|" + (gfxLite() ? 1 : 0);
+  // Who is looking is part of the key: the DM sees the painted ground, players do not.
+  const viewer = view.you && view.you.isDm ? "dm" : "player";
+  if (GFX.signs.terrain && gfxSame("terrain", [view.terrain], cell + "|" + gfxZoomStep() + "|" + gfxLite() + "|" + viewer)) return;
+  const sign = JSON.stringify(view.terrain || {}) + "|" + cell + "|" + gfxZoomStep() + "|" + (gfxLite() ? 1 : 0) + "|" + viewer;
   if (!gfxLayerChanged("terrain", sign)) return;
   const layer = GFX.layers.terrain;
+  if (!view.you.isDm) {
+    // Players: the map picture shows the ground; names come on hover (terrainHintAt in app.js). The layer was just emptied,
+    // so nothing is left to animate.
+    GFX.ground = { tilings: [], flames: [], embers: [], twinkles: [], pulses: [] };
+    return;
+  }
   const patterns = gfxPatterns();
   const tex = GFX.tex || {};
   GFX.ground = { tilings: [], flames: [], embers: [], twinkles: [], pulses: [] };
@@ -35440,7 +36168,7 @@ function buildCharacterWindow() {
   // DM panel for class and spell files and for rests.
   const players = byId("playerList").closest("details");
   const panel = charEl("details", "dmOnly hiddenRow");
-  panel.appendChild(charEl("summary", "", "DM: Classes, spells and rests"));
+  panel.appendChild(charEl("summary", "", "Classes, spells and rests"));
   panel.appendChild(charEl("div", "muted small", "Paste a class or spell file, or choose a .json file. Importing again with the same id replaces it. To bring in many files at once, use DM: Content packs above."));
   const text = charEl("textarea");
   text.id = "contentText";
@@ -35933,7 +36661,12 @@ function renderSpellRow(token, character, classId, info, spell, castable) {
 
   const chosen = charTargets[spell.id] || [];
   if (spell.needsTarget || spell.maxTargets > 1) {
-    box.appendChild(charEl("div", "muted small", "Targets (up to " + spell.maxTargets + " at its base level):"));
+    // Eldritch Blast's beams go by character level; tap "Attacks" to aim several beams at the same creature.
+    const beams = spell.id === "eldritch_blast" && Array.isArray(character.classes)
+      ? rulesBlastBeams(character.classes.reduce(function (sum, entry) { return sum + (entry.level || 0); }, 0)) : 0;
+    box.appendChild(charEl("div", "muted small", beams > 0
+      ? "Targets (" + beams + (beams === 1 ? " beam" : " beams") + " at your level; to hit one creature with several beams, cast it from Attacks):"
+      : "Targets (up to " + spell.maxTargets + " at its base level):"));
     const targets = charEl("div", "targetList");
     for (const other of view.tokens) {
       const label = charEl("label", "targetPick");
@@ -35984,6 +36717,8 @@ function renderSpellRow(token, character, classId, info, spell, castable) {
       targetIds: (charTargets[spell.id] || []).slice(),
       mode: mode.value, secret: view.you.isDm && byId("secretRoll") !== null && byId("secretRoll").checked
     };
+    // An area around the caster (Spirit Guardians) is centred where the caster stands.
+    if (spell.area && spell.area.origin === "self" && spell.zone === true) message.point = { x: token.x, y: token.y };
     for (const getter of castExtras) Object.assign(message, getter());
     send(message);
   }, "primary"));
@@ -36007,8 +36742,11 @@ function renderSpellRow(token, character, classId, info, spell, castable) {
 function renderCharSetup(body, token, character) {
   if (!view.you.isDm) return;
   renderLevelUpSetup(body, token, character);
-  if (charDraftFor !== token.id) {
-    charDraftFor = token.id;
+  // The draft starts from the character's classes and starts again when they change (a character made in this window,
+  // a finished level up), so the override never shows a blank class for a character that has one.
+  const draftKey = token.id + "|" + (character ? character.classes.map(function (c) { return c.id + ":" + c.level + ":" + (c.subclass || ""); }).join(",") : "");
+  if (charDraftFor !== draftKey) {
+    charDraftFor = draftKey;
     charDraft = character ? character.classes.map(function (c) { return { id: c.id, level: c.level, subclass: c.subclass }; }) : [{ id: "", level: 1, subclass: "" }];
   }
   const classIds = Object.keys(CONTENT.classes);
@@ -36197,12 +36935,26 @@ function lvlCheckList(box, options, chosen, limit, onChange) {
       onChange(chosen);
     });
     checks.push(check);
+    if (check.checked) label.classList.add("picked");
+    check.addEventListener("change", function () { for (const other of checks) other.parentNode.classList.toggle("picked", other.checked); });
     label.appendChild(check);
     const text = charEl("span", "", option.name);
     label.appendChild(text);
     list.appendChild(label);
-    if (option.text) lvlOptionText(list, option.text);
+    if (Array.isArray(option.details)) {
+      // Species and backgrounds: the whole description, the summary and then what it gives, line by line.
+      const more = charEl("div", "levelOptionDetails");
+      if (option.text) more.appendChild(charEl("div", "levelOptionSummary", option.text));
+      for (const line of option.details) {
+        const row = charEl("div", "levelDetailLine");
+        row.appendChild(charEl("strong", "", line.label + ": "));
+        row.appendChild(document.createTextNode(line.text));
+        more.appendChild(row);
+      }
+      list.appendChild(more);
+    } else if (option.text) lvlOptionText(list, option.text);
   }
+  if (options.some(function (option) { return Array.isArray(option.details); })) list.classList.add("levelListFull");
   box.appendChild(list);
 }
 
@@ -36229,24 +36981,40 @@ function lvlRenderHp(card, token, step) {
   }
   const mod = (step.conMod >= 0 ? "+" : "") + step.conMod;
   const row = charEl("div", "fieldRow");
-  row.appendChild(charButton("Take the average: " + step.average + " " + mod + " = " + (step.average + step.conMod), function () {
-    lvlSend(token, step, { method: "average" });
-  }, step.answer && step.answer.method === "average" ? "primary" : ""));
+  // The DM sets for the whole table whether hit points are rolled or the average is taken (DM tools).
+  if (step.method === "average") {
+    row.appendChild(charButton("Take the average: " + step.average + " " + mod + " = " + (step.average + step.conMod), function () {
+      lvlSend(token, step, { method: "average" });
+    }, step.answer && step.answer.method === "average" ? "primary" : ""));
+    card.appendChild(row);
+    card.appendChild(charEl("div", "muted small", "Your DM has this table take the average hit points at each level."));
+    return;
+  }
   const rollLabel = typeof step.rolled === "number" ? "Use the roll: " + step.rolled + " " + mod + " = " + (step.rolled + step.conMod) : "Roll 1d" + step.hitDie + " " + mod;
   row.appendChild(charButton(rollLabel, function () {
     lvlSend(token, step, { method: "roll" });
   }, step.answer && step.answer.method === "roll" ? "primary" : ""));
   card.appendChild(row);
-  if (typeof step.rolled === "number") card.appendChild(charEl("div", "muted small", "Your roll is " + step.rolled + " and stays the same if you switch back and forth."));
+  if (typeof step.rolled === "number") card.appendChild(charEl("div", "muted small", "Your roll is " + step.rolled + "."));
 }
 
+// Subclasses as cards: an emblem (the subclass's initials in a ring), the name and the full text. The chosen one is green.
 function lvlRenderSubclass(card, token, step) {
+  const grid = charEl("div", "subclassGrid");
   for (const option of step.options) {
-    const row = charEl("div", "levelOptionRow");
-    row.appendChild(charButton(option.name, function () { lvlSend(token, step, option.id); }, step.answer === option.id ? "primary" : ""));
-    if (option.text) row.appendChild(charEl("div", "muted small", option.text));
-    card.appendChild(row);
+    const picked = step.answer === option.id;
+    const tile = charEl("button", "subclassCard" + (picked ? " picked" : ""));
+    tile.type = "button";
+    tile.setAttribute("aria-pressed", picked ? "true" : "false");
+    const initials = option.name.split(/\s+/).filter(function (word) { return /^[A-Z]/.test(word) && ["Of", "The"].indexOf(word) === -1; }).map(function (word) { return word.charAt(0); }).join("").slice(0, 2) || option.name.charAt(0);
+    const emblem = charEl("div", "subclassEmblem", initials);
+    tile.appendChild(emblem);
+    tile.appendChild(charEl("div", "subclassName", option.name + (picked ? "  \u2713" : "")));
+    if (option.text) tile.appendChild(charEl("div", "subclassText", option.text));
+    tile.addEventListener("click", function () { lvlSend(token, step, option.id); });
+    grid.appendChild(tile);
   }
+  card.appendChild(grid);
 }
 
 function lvlRenderAsi(card, token, step) {
@@ -36423,11 +37191,79 @@ function lvlRenderFeat(card, token, step) {
 }
 
 function lvlRenderPick(card, token, step) {
+  if (step.kind === "skills" && Array.isArray(step.have)) {
+    card.appendChild(charEl("div", "levelHave", step.have.length > 0 ? "Skills you already have: " + step.have.join(", ") + "." : "You have no skill proficiencies yet."));
+  }
+  if (step.id === "bg_abilities" && Array.isArray(step.abilities)) {
+    lvlRenderBgAbilities(card, token, step);
+    return;
+  }
   const key = lvlDraftKey(token, step);
   if (!lvlDraft[key]) lvlDraft[key] = Array.isArray(step.answer) ? step.answer.slice() : [];
   const chosen = lvlDraft[key];
   lvlCheckList(card, step.options, chosen, step.count, function () {});
   card.appendChild(charButton("Save choice", function () { lvlSend(token, step, chosen.slice()); }, "primary"));
+}
+
+// Background ability increases: a - / + stepper on each of the background's three abilities. Three points in all,
+// either +2 and +1 or +1 to each; no score above 20. Saved as the matching option ("all" or "str+dex").
+function lvlRenderBgAbilities(card, token, step) {
+  const key = lvlDraftKey(token, step);
+  if (!lvlDraft[key]) {
+    const add = {};
+    for (const ability of step.abilities) add[ability] = 0;
+    const saved = Array.isArray(step.answer) ? step.answer[0] : "";
+    if (saved === "all") for (const ability of step.abilities) add[ability] = 1;
+    else if (typeof saved === "string" && saved.indexOf("+") !== -1) { const parts = saved.split("+"); add[parts[0]] = 2; add[parts[1]] = 1; }
+    lvlDraft[key] = add;
+  }
+  const add = lvlDraft[key];
+  const total = function () { return step.abilities.reduce(function (sum, ability) { return sum + add[ability]; }, 0); };
+  const status = charEl("div", "muted small", "");
+  const grid = charEl("div", "abilityAssign");
+  card.appendChild(grid);
+  card.appendChild(status);
+  const optionId = function () {
+    const values = step.abilities.map(function (ability) { return add[ability]; });
+    if (values.every(function (value) { return value === 1; })) return "all";
+    const two = step.abilities.find(function (ability) { return add[ability] === 2; });
+    const one = step.abilities.find(function (ability) { return add[ability] === 1; });
+    return two && one && total() === 3 ? two + "+" + one : "";
+  };
+  const draw = function () {
+    grid.textContent = "";
+    for (const ability of step.abilities) {
+      const base = step.scores && typeof step.scores[ability] === "number" ? step.scores[ability] : null;
+      const cell = charEl("div", "abilityCell" + (add[ability] > 0 ? " assigned" : ""));
+      cell.appendChild(charEl("div", "abilityCellName", abilityName(ability)));
+      const row = charEl("div", "stepper");
+      const minus = charButton("\u2212", function () { if (add[ability] > 0) { add[ability]--; draw(); } });
+      minus.disabled = add[ability] === 0;
+      const plus = charButton("+", function () {
+        if (add[ability] >= 2 || total() >= 3) return;
+        if (base !== null && base + add[ability] + 1 > 20) return;
+        add[ability]++;
+        // +2 on one leaves room for only a +1 elsewhere; two +2s are not allowed.
+        if (add[ability] === 2 && step.abilities.some(function (other) { return other !== ability && add[other] === 2; })) { add[ability]--; return; }
+        draw();
+      });
+      plus.disabled = add[ability] >= 2 || total() >= 3 || (base !== null && base + add[ability] + 1 > 20);
+      row.appendChild(minus);
+      row.appendChild(charEl("span", "stepValue", "+" + add[ability]));
+      row.appendChild(plus);
+      cell.appendChild(row);
+      if (base !== null) cell.appendChild(charEl("div", "muted small", base + " \u2192 " + (base + add[ability])));
+      grid.appendChild(cell);
+    }
+    const left = 3 - total();
+    status.textContent = optionId() !== "" ? "Ready: save to keep it." : (left > 0 ? left + " point" + (left === 1 ? "" : "s") + " left to place (+2 and +1, or +1 to each)." : "Use +2 and +1, or +1 to each.");
+  };
+  draw();
+  card.appendChild(charButton("Save choice", function () {
+    const id = optionId();
+    if (id === "") { showStatus("Place three points: +2 and +1, or +1 to each."); return; }
+    lvlSend(token, step, [id]);
+  }, "primary"));
 }
 
 function lvlSpellOptions(ids) {
@@ -36469,11 +37305,25 @@ function lvlRenderAbilities(card, token, step) {
     lvlDraft[key] = draft;
   }
   const draft = lvlDraft[key];
-  card.appendChild(charEl("div", "", "Your numbers: " + step.numbers.join(", ")));
+  const primary = Array.isArray(step.primary) ? step.primary : [];
+  if (step.primaryText) card.appendChild(charEl("div", "levelHave", "Your class\u2019s main ability: " + step.primaryText + ". Put your best number there."));
+  // The rolled numbers as chips; a number already given to an ability is crossed out.
+  const chips = charEl("div", "abilityChips");
+  card.appendChild(charEl("div", "muted small", "Your numbers (each is used once):"));
+  card.appendChild(chips);
+  const grid = charEl("div", "abilityAssign");
+  card.appendChild(grid);
   const selects = [];
   const refresh = function () {
     const taken = Object.keys(draft.at).map(function (ability) { return draft.at[ability]; });
+    chips.textContent = "";
+    for (let i = 0; i < step.numbers.length; i++) {
+      const used = taken.indexOf(i) !== -1;
+      const owner = Object.keys(draft.at).find(function (ability) { return draft.at[ability] === i; });
+      chips.appendChild(charEl("span", "abilityChip" + (used ? " used" : ""), String(step.numbers[i]) + (owner ? " \u2192 " + owner.toUpperCase() : "")));
+    }
     for (const entry of selects) {
+      entry.cell.classList.toggle("assigned", draft.at[entry.ability] !== undefined);
       for (const option of entry.select.options) {
         if (option.value === "") continue;
         const index = parseInt(option.value, 10);
@@ -36482,8 +37332,10 @@ function lvlRenderAbilities(card, token, step) {
     }
   };
   for (const ability of LEVELUP_ABILITIES) {
-    const row = charEl("div", "fieldRow");
-    row.appendChild(charEl("span", "", abilityName(ability)));
+    const cell = charEl("div", "abilityCell" + (primary.indexOf(ability) !== -1 ? " primary" : ""));
+    const label = charEl("div", "abilityCellName", abilityName(ability));
+    if (primary.indexOf(ability) !== -1) label.appendChild(charEl("span", "abilityMain", "Main"));
+    cell.appendChild(label);
     const select = charEl("select");
     const blank = charEl("option", "", "Choose");
     blank.value = "";
@@ -36499,9 +37351,9 @@ function lvlRenderAbilities(card, token, step) {
       else draft.at[ability] = parseInt(select.value, 10);
       refresh();
     });
-    row.appendChild(select);
-    card.appendChild(row);
-    selects.push({ ability: ability, select: select });
+    cell.appendChild(select);
+    grid.appendChild(cell);
+    selects.push({ ability: ability, select: select, cell: cell });
   }
   refresh();
   card.appendChild(charButton("Save ability scores", function () {
@@ -36650,8 +37502,23 @@ function renderLevelUp(body, token, character) {
     body.appendChild(nav);
   }
 
-  const footer = charEl("div", "fieldRow topGap");
   const lastPage = lvlPage === total || (total === 0 && lvlPage === 0);
+  // On the last page, list the choices still missing; each opens its page.
+  if (lastPage && !up.ready) {
+    const missing = [];
+    up.steps.forEach(function (each, index) { if (!each.done && !each.auto) missing.push({ step: each, page: index + 1 }); });
+    if (missing.length > 0) {
+      const box = charEl("div", "levelMissing");
+      box.appendChild(charEl("strong", "", "Still to choose (" + missing.length + "):"));
+      const row = charEl("div", "fieldRow");
+      for (const item of missing) {
+        row.appendChild(charButton(item.page + ". " + item.step.title + (item.step.error ? " \u26A0" : ""), function () { lvlPage = item.page; renderCharacter(); }));
+      }
+      box.appendChild(row);
+      body.appendChild(box);
+    }
+  }
+  const footer = charEl("div", "fieldRow topGap");
   const finish = charButton(up.ready ? "Finish level up" : "Finish level up (choices missing)", function () {
     send({ type: "levelUpFinish", tokenId: token.id });
   }, up.ready ? "primary" : "");
@@ -36705,6 +37572,7 @@ function renderLevelUpSetup(body, token, character) {
   if (character && character.levelUp) {
     body.appendChild(charEl("div", "muted", "A level up is in progress. Open the Level up tab."));
     body.appendChild(charButton("Open Level up tab", function () { charTab = "levelup"; renderCharacter(); }, "primary"));
+    body.appendChild(charEl("h3", "", "Or set classes directly (override)"));
     return;
   }
   const row = charEl("div", "fieldRow");
@@ -36736,6 +37604,9 @@ function renderLevelUpSetup(body, token, character) {
     equipBox.checked = true;
     equipRow.insertBefore(equipBox, equipRow.firstChild);
     body.appendChild(equipRow);
+  } else if (!character) {
+    // Without the equipment pack there is nothing to choose from: say so, so the character is not left with no armour or weapons.
+    body.appendChild(charEl("div", "muted small", "Starting equipment needs the equipment pack (packs/equipment_srd.json). Load it in DM: Content packs to let the player pick a class package or gold."));
   }
   let skipBox = null;
   if (!character) {
@@ -39605,7 +40476,7 @@ function packsBuildPanel() {
   if (!anchor) return;
   const panel = charEl("details", "dmOnly hiddenRow");
   panel.id = "packPanel";
-  panel.appendChild(charEl("summary", "", "DM: Content packs"));
+  panel.appendChild(charEl("summary", "", "Content packs"));
   const body = charEl("div");
   body.id = "packBody";
   panel.appendChild(body);
@@ -40027,8 +40898,9 @@ function renderZoneBar() {
     if (zone.hurts && zone.canSpare) {
       const spare = document.createElement("button");
       spare.type = "button";
-      spare.textContent = zone.spare === "players" ? "Spares players: change" : "Hits everyone: spare players";
-      spare.addEventListener("click", function () { send({ type: "zoneSpare", id: zone.id, mode: zone.spare === "players" ? "none" : "players" }); });
+      const allies = zone.spare === "allies";
+      spare.textContent = allies ? "Spares the caster's allies: hit everyone" : (zone.spare === "players" ? "Spares players: change" : "Hits everyone: spare " + (zone.alliesMode ? "allies" : "players"));
+      spare.addEventListener("click", function () { send({ type: "zoneSpare", id: zone.id, mode: zone.spare !== "none" ? "none" : (zone.alliesMode ? "allies" : "players") }); });
       item.appendChild(spare);
     }
     if (zone.movable && zone.canSpare) {
