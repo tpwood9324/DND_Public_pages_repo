@@ -259,7 +259,7 @@ label.checkRow input { width: 18px; height: 18px; }
   border-radius: 10px;
   padding: 12px 16px;
   text-align: center;
-  pointer-events: none;
+  cursor: pointer;   /* a click closes it */
 }
 #diceTitle { font-weight: 600; margin-bottom: 8px; }
 #diceWindow, #statusMessage { z-index: 10; }
@@ -691,25 +691,38 @@ label.checkRow input { width: 18px; height: 18px; }
 
 /* Colour-blind mode (Okabe-Ito palette): good is blue, bad is vermillion, warnings are yellow, effects are reddish purple.
    Green and red are never the only difference between two states. Turned on by the top bar button, saved per device. */
-body.cb button.primary { background: #0072b2; border-color: #56b4e9; }
-body.cb button.primary:hover { background: #1a86c4; }
-body.cb button.danger { background: #6b3200; border-color: #d55e00; }
-body.cb .initChip.current { background: #0072b2; border-color: #f0e442; }
+/* The rules never set a background or a text colour that assumes a dark or a light panel: each theme keeps its own, so text stays readable
+   on Parchment and Druid (light cards) as well as Steel (silver buttons). Mode shows through rings, borders and marks, plus the few text
+   colours below, which have a darker version for the light cards. */
+body.cb button.primary { box-shadow: inset 0 0 0 2px #56b4e9; }
+body.cb button.danger { box-shadow: inset 0 0 0 2px #d55e00; }
+body.cb .initChip.current { box-shadow: 0 0 0 2px #0072b2, 0 0 0 4px #f0e442; }
 body.cb #connectionLabel.good { color: #56b4e9; }
-body.cb .die.max { background: #a9d8f2; }
-body.cb .die.min { background: #f0b37a; }
+body.cb .die.max { box-shadow: inset 0 0 0 3px #56b4e9; }
+body.cb .die.min { box-shadow: inset 0 0 0 3px #d55e00; }
 body.cb .levelStep.levelDone { border-left-color: #56b4e9; }
 body.cb .levelTag.done { color: #56b4e9; }
 body.cb .levelError { color: #f0a060; }
-body.cb .effectChip { background: #3a2433; border-color: #cc79a7; }
-body.cb .ecoChip { border-color: #0072b2; background: #12304a; color: #cfe8f8; }
-body.cb .ecoChip.spent { border-color: #777; background: #333; color: #999; }
-body.cb .ecoMove { color: #cfe8f8; }
-body.cb .ecoMove.spent { color: #f2c56b; }
+body.cb .effectChip { border-color: #cc79a7; border-left-width: 4px; }
+body.cb .ecoChip { border-color: #0072b2; border-width: 2px; }
+body.cb .ecoChip.spent { border-color: #777; border-style: dashed; text-decoration: line-through; }
+body.cb .ecoMove.spent { text-decoration: underline; }
 body.cb .statusRow.bane .statusIcon, body.cb .statusRow.bane .statusName { color: #f0a060; }
 body.cb .statusRow.boon .statusIcon, body.cb .statusRow.boon .statusName { color: #56b4e9; }
-body.cb .routeWarn { color: #f5c58b; background: rgba(110, 50, 0, 0.5); border-color: #d55e00; }
-body.cb #deathBar { background: #2f1b08; border-color: #d55e00; }
+body.cb .routeWarn { border-color: #d55e00; border-width: 2px; }
+body.cb #deathBar { border-color: #d55e00; border-width: 2px; }
+body.cb.theme-parchment #connectionLabel.good, body.cb.theme-druid #connectionLabel.good,
+body.cb.theme-parchment .levelTag.done, body.cb.theme-druid .levelTag.done,
+body.cb.theme-parchment .statusRow.boon .statusIcon, body.cb.theme-druid .statusRow.boon .statusIcon,
+body.cb.theme-parchment .statusRow.boon .statusName, body.cb.theme-druid .statusRow.boon .statusName { color: #004c7a; }
+body.cb.theme-parchment .levelError, body.cb.theme-druid .levelError,
+body.cb.theme-parchment .statusRow.bane .statusIcon, body.cb.theme-druid .statusRow.bane .statusIcon,
+body.cb.theme-parchment .statusRow.bane .statusName, body.cb.theme-druid .statusRow.bane .statusName { color: #8a3b00; }
+/* Rolls: a roll that succeeded reads blue with a tick, one that failed reads orange with a cross (green and red are never the only cue). */
+body.cb .rollLineGood { color: #56b4e9; }
+body.cb .rollLineBad { color: #f0a060; }
+body.cb.theme-parchment .rollLineGood, body.cb.theme-druid .rollLineGood { color: #004c7a; }
+body.cb.theme-parchment .rollLineBad, body.cb.theme-druid .rollLineBad { color: #8a3b00; }
 #cbToggle { white-space: nowrap; }
 #settingsOpen { white-space: nowrap; }
 .settingsHead { text-align: center; margin: 0 0 6px; }
@@ -843,6 +856,47 @@ body.cb .effectChip.bane { border-color: #d55e00; }
 .groundRow.open .groundName::before { content: "\25BE "; }
 .groundRow:not(.open) .groundText { display: none; }
 .groundText { margin: 4px 0 0 26px; white-space: pre-wrap; }
+
+/* A roll line that succeeded (a hit, a save made) is green with a tick; one that failed (a miss, a failed save) is red with a cross. */
+.rollLineGood { color: #4ade80; font-weight: 600; }
+.rollLineGood::before { content: "\2714  "; }
+.rollLineBad { color: #f87171; font-weight: 600; }
+.rollLineBad::before { content: "\2718  "; }
+body.theme-parchment .rollLineGood, body.theme-druid .rollLineGood { color: #1f6a1c; }
+body.theme-parchment .rollLineBad, body.theme-druid .rollLineBad { color: #a3241a; }
+
+#statusMessage { cursor: pointer; }
+.rollEntry.rollNote { font-style: italic; opacity: 0.85; }
+
+.subclassDetails { align-self: stretch; margin: 2px 0; }
+.subclassDetails summary { cursor: pointer; font-weight: 600; font-size: 0.9em; }
+.subclassFeatureName { font-weight: 600; margin-top: 6px; font-size: 0.9em; }
+
+/* Action / Bonus Action / Reaction symbols in the top resource bar (R1) */
+.ecoSymbol { min-height: 0 !important; padding: 3px 5px !important; background: transparent; border: 0; cursor: pointer; display: inline-flex; align-items: center; }
+.ecoSymbol .rpip { width: 18px; height: 18px; }
+.ecoSymbol .rpip.arrow { clip-path: polygon(50% 4%, 100% 92%, 0% 92%); }
+.ecoSymbol.spent .rpip { opacity: 0.18; box-shadow: none; filter: grayscale(1); }
+body.cb .ecoSymbol:not(.spent) { outline: 2px solid currentColor; outline-offset: 1px; border-radius: 6px; }
+
+/* Soul Harvester cards (R24): buttons wrap instead of squashing, long titles wrap */
+.soulActions { flex-wrap: wrap; gap: 6px; }
+.soulActions button { flex: 0 0 auto; white-space: nowrap; }
+details.charFeature > summary { overflow-wrap: anywhere; }
+
+/* Campaign wiki (R30) */
+.wikiCard { width: min(900px, 96vw); max-height: 90vh; display: flex; flex-direction: column; }
+.wikiHead { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.wikiHead h3 { margin: 0; flex: 0 0 auto; }
+.wikiHead input[type="search"] { flex: 1 1 160px; min-width: 120px; }
+.wikiBody { display: flex; gap: 12px; margin-top: 10px; min-height: 0; flex: 1; overflow: hidden; }
+.wikiList { flex: 0 0 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.wikiItem { text-align: left; overflow-wrap: anywhere; }
+.wikiItem.active { outline: 2px solid currentColor; outline-offset: -2px; }
+.wikiPage { flex: 1 1 auto; overflow-y: auto; min-width: 0; }
+.wikiText { white-space: pre-wrap; line-height: 1.45; }
+.wikiEditor { width: 100%; box-sizing: border-box; }
+@media (max-width: 640px) { .wikiBody { flex-direction: column; } .wikiList { flex: 0 0 auto; max-height: 30vh; } }
 
 </style>
   <style>
@@ -1771,9 +1825,9 @@ body.theme-necromancer {
 }
 
 /* Subclass cards and ability cells in the level-up window */
-.themed button.subclassCard { background: var(--inset); color: var(--text); border: 2px solid var(--edge-soft); box-shadow: none; text-shadow: none; font-family: inherit; font-variant: normal; }
-.themed button.subclassCard:hover { background: var(--inset); border-color: var(--gem); }
-.themed button.subclassCard.picked { border-color: var(--good, #4caf50); background: color-mix(in srgb, var(--good, #4caf50) 16%, var(--inset)); box-shadow: 0 0 0 1px var(--good, #4caf50); }
+.themed .subclassCard { background: var(--inset); color: var(--text); border: 2px solid var(--edge-soft); box-shadow: none; text-shadow: none; font-family: inherit; font-variant: normal; }
+.themed .subclassCard:hover { background: var(--inset); border-color: var(--gem); }
+.themed .subclassCard.picked { border-color: var(--good, #4caf50); background: color-mix(in srgb, var(--good, #4caf50) 16%, var(--inset)); box-shadow: 0 0 0 1px var(--good, #4caf50); }
 .themed .subclassEmblem { border-color: var(--gem); color: var(--gem); background: var(--panel); }
 .themed .subclassCard.picked .subclassEmblem { border-color: var(--good, #4caf50); color: var(--good, #4caf50); }
 .themed .abilityCell { background: var(--inset); border-color: var(--edge-soft); }
@@ -1827,6 +1881,7 @@ body.theme-necromancer {
       <div id="connectionLabel"></div>
       <button id="groundButton" type="button" class="primary hiddenRow" title="Look at the items lying where your character stands">Items here</button>
       <button id="copyInvite" type="button" class="hiddenRow">Copy invite link</button>
+      <button id="wikiOpen" type="button" class="textButton" aria-label="Campaign wiki" title="The campaign wiki: notes, lore and rules pages shared by the DM"><span class="cbLong">&#128214; Wiki</span></button>
       <button id="settingsOpen" type="button" class="textButton" aria-label="Settings" title="Theme, text size, colour-blind mode, enhanced graphics, reduce motion and dice sounds for your screen"><span class="cbLong">&#9881; Settings</span><span class="cbShort">&#9881;</span></button>
       <div id="whoLabel"></div>
     </header>
@@ -1836,7 +1891,10 @@ body.theme-necromancer {
         <h3 id="groundTitle">Items here</h3>
         <div id="groundList"></div>
         <div id="groundAddRow" class="fieldRow hiddenRow">
+          <label>Search <input id="groundAddSearch" type="search" placeholder="Type to find an item" autocomplete="off"></label>
           <label>Add an item <select id="groundAddItem"></select></label>
+          <label id="groundCustomName" class="hiddenRow">Name <input id="groundCustomNameInput" type="text" maxlength="60" placeholder="Quest item name"></label>
+          <label id="groundCustomNote" class="hiddenRow">Note <input id="groundCustomNoteInput" type="text" maxlength="600" placeholder="What it is (players see this)"></label>
           <label class="narrow">Count <input id="groundAddCount" type="number" min="1" max="999" value="1"></label>
           <button id="groundAdd" type="button">Add</button>
         </div>
@@ -2354,6 +2412,10 @@ body.theme-necromancer {
         <h3>Automatic backups</h3>
         <div id="autosaveStatus" class="muted small"></div>
         <select id="autosaveList"></select>
+        <div class="buttonRow">
+          <button id="dmFolderChoose" type="button" class="primary">Choose the DM folder</button>
+        </div>
+        <div id="dmFolderLine" class="small"></div>
         <div id="autosaveFolderLine" class="small"></div>
         <div class="buttonRow">
           <button id="autosaveChoose" type="button">Choose a backup folder on this computer</button>
@@ -2578,6 +2640,27 @@ function contentCleanSpell(raw, problems) {
       if (step) spell.steps.push(step);
     }
   }
+  // Chromatic Orb (2024 PHB): the caster chooses Acid, Cold, Fire, Lightning, Poison or Thunder before hurling it. One attack step per
+  // type; the cast window offers the choice, and only the chosen step runs. Applied to any copy of the spell pack.
+  if (id === "chromatic_orb" && spell.steps.length === 1 && spell.steps[0].type === "attack" && Array.isArray(spell.steps[0].damage) && spell.steps[0].damage[0] && spell.steps[0].damage[0].type === "") {
+    const base = spell.steps[0];
+    spell.steps = ["acid", "cold", "fire", "lightning", "poison", "thunder"].map(function (kind) {
+      const copy = JSON.parse(JSON.stringify(base));
+      copy.variant = kind;
+      copy.variantName = kind.charAt(0).toUpperCase() + kind.slice(1);
+      copy.damage[0].type = kind;
+      return copy;
+    });
+    spell.variantLabel = "Damage type";
+  }
+  // Shadow Blade: casting it puts a sword of shadow in the caster's hand. The effect lasts as long as the concentration and the
+  // attack list shows a melee attack for it (see the conjured-weapon hook in rules_attacks.js). Applied to any copy of the pack.
+  if (id === "shadow_blade" && spell.steps.length === 1 && spell.steps[0].type === "attack") {
+    spell.steps = [{ type: "effect", durationRounds: 10, effect: { name: "Shadow Blade", info: true, conjured: { name: "Shadow Blade", dice: "2d8", type: "psychic", upcast: true, finesse: true, reach: 1, thrown: [20, 60] }, note: "A sword of shadow in your hand: Finesse, Light, Thrown (20/60). Advantage on the attack if you and the target are in dim light or darkness. A thrown blade returns to your hand." } }];
+    spell.maxTargets = 0;
+  }
+  // Spells whose cone is only rolled once when cast leave nothing on the map afterwards (Fear, Dragon's Breath).
+  if (id === "fear" || id === "dragons_breath") spell.zone = false;
   return spell;
 }
 
@@ -5388,6 +5471,11 @@ function rulesRunStep(step, ctx, targets, lines, dice) {
       if (template.extraHit && typeof template.extraHit === "object" && template.extraHit.upcast === true && ctx.upcastDice !== "" && template.extraHit.dice) {
         template.extraHit = Object.assign({}, template.extraHit, { dice: template.extraHit.dice + "+" + ctx.upcastDice });
       }
+      // A conjured weapon (Shadow Blade): the attack bonus and damage dice are fixed by the cast (spell attack bonus, upcast dice).
+      if (template.conjured && typeof template.conjured === "object") {
+        template.conjured = Object.assign({}, template.conjured, { bonus: ctx.spellAttack });
+        if (template.conjured.upcast === true && ctx.upcastDice !== "") template.conjured.dice += "+" + ctx.upcastDice;
+      }
       if (template.onlyBy === "self") template = Object.assign({}, template, { onlyBy: ctx.caster.id });
       // replaceOwn: a second casting ends the earlier one made by the same caster on any creature (Vow of Enmity).
       if (step.replaceOwn === true) {
@@ -5730,7 +5818,14 @@ function rulesCastSpell(action, name, isDm) {
   if (spell.id === "eldritch_blast") maxTargets = rulesBlastBeams(rulesTotalLevel(token.character));   // one beam per target picked
   const wordsOfCreation = entry && entry.id === "bard" && entry.level >= 20 && rulesWordsOfCreation(spell);
   if (wordsOfCreation) maxTargets += 1;
-  const targetIds = Array.isArray(action.targetIds) ? action.targetIds : [];
+  let targetIds = Array.isArray(action.targetIds) ? action.targetIds : [];
+  // R14: a spell with no area can be aimed at any square. Whoever stands there is the target.
+  if (!spell.area && targetIds.length === 0 && action.point && Number.isFinite(Number(action.point.x)) && Number.isFinite(Number(action.point.y))) {
+    const aimX = Math.floor(Number(action.point.x));
+    const aimY = Math.floor(Number(action.point.y));
+    const standing = state.tokens.find(function (other) { const t = sizeTiles(other); return other.id !== token.id && aimX >= other.x && aimX < other.x + t && aimY >= other.y && aimY < other.y + t && typeof other.hp === "number"; });
+    if (standing) targetIds = [standing.id];
+  }
   // An area spell placed on the map: the point must be in range, and every target must stand inside the area.
   const point = spell.area && action.point && Number.isFinite(Number(action.point.x)) && Number.isFinite(Number(action.point.y))
     ? { x: Math.floor(Number(action.point.x)), y: Math.floor(Number(action.point.y)) } : null;
@@ -5781,7 +5876,7 @@ function rulesCastSpell(action, name, isDm) {
     if (!target || !canSeeToken(target, name, isDm)) return "One of those targets is no longer there.";
     if (targets.indexOf(target) === -1 || spell.id === "eldritch_blast") targets.push(target);   // each Eldritch Blast beam is its own target pick, so the same creature can take several
   }
-  if (maxTargets > 0 && targets.length === 0 && !(point && spell.zone === true) && !(point && spell.area && typeof zoneSpellAffectsZones === "function" && zoneSpellAffectsZones(spell)) && spell.steps.some(function (step) { return step.to !== "self" && ["text", "spawn", "pool"].indexOf(step.type) === -1; })) {
+  if (maxTargets > 0 && targets.length === 0 && !(!spell.area && action.point && typeof zoneSpellIsFire === "function" && zoneSpellIsFire(spell) && state.zones.some(function (zone) { return zoneSpellId(zone) === "grease"; })) && !(point && spell.zone === true) && !(point && spell.area && typeof zoneSpellAffectsZones === "function" && zoneSpellAffectsZones(spell)) && spell.steps.some(function (step) { return step.to !== "self" && ["text", "spawn", "pool"].indexOf(step.type) === -1; })) {
     return "Pick at least one target for " + spell.name + ".";
   }
   if (action.dryRun) return null;
@@ -5860,6 +5955,13 @@ function rulesCastSpell(action, name, isDm) {
   }
   // What the area does to the zones and creatures already there (fire burns Web, wind disperses fog, Daylight dispels Darkness ...).
   if (point && spell.area && typeof zoneMixAfterCast === "function") zoneMixAfterCast(spell, token, point, ctx, lines);
+  // R14: a single-target fire spell (Fire Bolt) that is aimed at a square, or hits a creature standing in Grease, sets the Grease alight.
+  if (!spell.area && typeof zoneSpellIsFire === "function" && typeof zoneIgniteGrease === "function" && zoneSpellIsFire(spell)) {
+    const reached = [];
+    if (action.point && Number.isFinite(Number(action.point.x)) && Number.isFinite(Number(action.point.y))) reached.push({ x: Math.floor(Number(action.point.x)), y: Math.floor(Number(action.point.y)) });
+    for (const id of targetIds) { const hitToken = hostFindToken(id); if (hitToken) reached.push({ x: hitToken.x, y: hitToken.y }); }
+    if (reached.length > 0) zoneIgniteGrease(reached, lines);
+  }
 
   const title = token.name + " casts " + spell.name + (slotLevel > spell.level ? " at level " + slotLevel : "") + (paid ? " (" + paid + ")" : "");
   addRoll(name, isDm && action.secret === true, title, lines, dice);
@@ -6195,7 +6297,7 @@ function rulesLibraryFor(name) {
       duration: spell.duration, concentration: spell.concentration, ritual: spell.ritual,
       classes: spell.classes, subclass: spell.subclass, grantLevel: spell.grantLevel,
       text: spell.text.slice(0, 1200), maxTargets: spell.maxTargets,
-      area: spell.area || null, rangeFeet: areaRangeFeet(spell), spawns: rulesSpellSpawns(spell), variants: rulesSpellVariants(spell),
+      area: spell.area || null, rangeFeet: areaRangeFeet(spell), spawns: rulesSpellSpawns(spell), variants: rulesSpellVariants(spell), variantLabel: spell.variantLabel || "",
       tempHp: spell.steps.some(function (step) { return step.type === "tempHp" && step.replace !== true; }),
       tempHpNote: (spell.steps.find(function (step) { return step.type === "tempHp" && typeof step.swapNote === "string"; }) || {}).swapNote || "",
       needsTarget: spell.steps.some(function (step) {
@@ -6767,7 +6869,11 @@ function ecoOnAttack(attacker, attack) {
 // taken on other turns and are not counted here. Returns an error text when the Action is already used.
 function ecoCreatureAttack(attacker, isDm) {
   if (!ecoOn() || attacker.kind === "player" || !ecoBinds(attacker, isDm)) return null;
-  if (typeof rulesOnItsTurn === "function" && !rulesOnItsTurn(attacker)) return null;
+  if (typeof rulesOnItsTurn === "function" && !rulesOnItsTurn(attacker)) {
+    // A summoned creature acts only on its summoner's turn (the DM can still use "No limits" on it).
+    if (typeof attacker.summonOf === "number" && !isDm) return attacker.name + " acts on " + (hostFindToken(attacker.summonOf) ? hostFindToken(attacker.summonOf).name : "its summoner") + "'s turn, with its own Action.";
+    return null;
+  }
   const eco = ecoState(attacker);
   if (eco.action && (eco.extra || 0) > 0) { eco.extra -= 1; return null; }
   if (eco.action) return attacker.name + " has already used its Action this turn (a Multiattack is one Action)" + ECO_DM_HINT + ".";
@@ -6775,8 +6881,17 @@ function ecoCreatureAttack(attacker, isDm) {
   return null;
 }
 
+// A summoned creature that is not in the initiative order starts its turn when its summoner's turn starts: fresh Speed and Action.
 RULES_TURN_START_HOOKS.push(function (token) {
-  token.eco = { action: false, bonus: false, reaction: false, bonusSpell: false, actionSpell: false, moved: 0, dash: 0, extra: 0, noMagic: false };
+  for (const other of state.tokens) {
+    if (other.summonOf !== token.id || state.initiative.entries.some(function (entry) { return entry.tokenId === other.id; })) continue;
+    other.eco = { action: false, bonus: false, reaction: false, bonusSpell: false, actionSpell: false, moved: 0, dash: 0, extra: 0, noMagic: false, startX: other.x, startY: other.y };
+  }
+  return "";
+});
+
+RULES_TURN_START_HOOKS.push(function (token) {
+  token.eco = { startX: token.x, startY: token.y, action: false, bonus: false, reaction: false, bonusSpell: false, actionSpell: false, moved: 0, dash: 0, extra: 0, noMagic: false };
   // Haste: one extra Action each turn (attack one weapon attack, Dash, Disengage, Hide or Utilize, not the Magic action).
   if (token.effects.some(function (effect) { return effect.name === "Haste"; })) { token.eco.extra = 1; return token.name + " has the extra Action from Haste."; }
   return "";
@@ -6966,11 +7081,21 @@ function rulesMoveMode(token) {
   return pick;
 }
 
+// A summoned creature or spirit (Draconic Spirit, a Soul Harvester's manifested soul) that is not in the initiative order of its own acts
+// on its summoner's turn, with its own Speed and its own Action, Bonus Action and Reaction like any other creature.
+function rulesSummonOnOwnerTurn(token) {
+  if (!ecoOn() || typeof token.summonOf !== "number") return false;
+  if (state.initiative.entries.some(function (entry) { return entry.tokenId === token.id; })) return false;
+  const current = state.initiative.entries[state.initiative.turn];
+  return !!current && current.tokenId === token.summonOf;
+}
+
 // True when this token is the creature whose turn it is, while combat runs.
 function rulesOnItsTurn(token) {
   if (!ecoOn()) return false;
   const entry = state.initiative.entries[state.initiative.turn];
   if (!!entry && entry.tokenId === token.id) return true;
+  if (rulesSummonOnOwnerTurn(token)) return true;
   // A controlled mount acts on its rider's turn.
   return !!entry && state.tokens.some(function (rider) { return rider.id === entry.tokenId && rider.mountId === token.id && !rider.mountIndependent; });
 }
@@ -12381,14 +12506,14 @@ function soulBuildAttacks(token, found, soul, stats, bonusExtra) {
     if (stats.riders === "both" && own === "") return other;
     return own;
   };
-  const list = [[a, riderOf(a.rider, b.rider)], [b, riderOf(b.rider, a.rider)]];
+  const list = [[a, riderOf(a.rider, b.rider), 0], [b, riderOf(b.rider, a.rider), 1]];
   for (const pair of list) {
     const def = pair[0];
     const rider = pair[1];
     const type = def.kind === "melee" ? soul.melee : soul.ranged;
     const attack = {
       id: state.nextId++,
-      name: def.name + " (" + type + (def.kind === "melee" ? ", 5 ft" : ", 30 ft") + (rider ? ", " + rider.replace("_", " ") : "") + ")",
+      name: ((Array.isArray(soul.attackNames) && soul.attackNames[pair[2]]) || def.name) + " (" + type + (def.kind === "melee" ? ", 5 ft" : ", 30 ft") + (rider ? ", " + rider.replace("_", " ") : "") + ")",
       kind: "attack", bonus: stats.bonus + bonusExtra, damage: stats.damage, dc: 10, ability: "dex", half: false,
       targets: 1, repeat: false, effect: soulRiderEffect(rider, cls), soulAttack: true
     };
@@ -12607,6 +12732,7 @@ function soulCleanSoul(raw, cls, existing) {
   if (typeof raw.template === "string" && templates[raw.template]) soul.template = raw.template;
   if (["bludgeoning", "piercing", "slashing"].indexOf(raw.melee) !== -1) soul.melee = raw.melee;
   if (["force", "necrotic", "radiant", "psychic", "acid", "cold", "fire", "lightning", "thunder", "poison"].indexOf(raw.ranged) !== -1) soul.ranged = raw.ranged;
+  if (Array.isArray(raw.attackNames)) soul.attackNames = raw.attackNames.slice(0, 2).map(function (n) { return typeof n === "string" ? contentText(n, 30) : ""; });
   if (typeof raw.aspect === "string" && soulAspect(cls, raw.aspect)) soul.aspect = raw.aspect;
   if (Array.isArray(raw.traits)) {
     soul.traits = [];
@@ -12820,6 +12946,26 @@ function soulUseSignature(action, name, isDm) {
   }
   if (targets.length > signature.maxTargets) return signature.name + " allows " + signature.maxTargets + (signature.maxTargets === 1 ? " target." : " targets.");
   if (signature.maxTargets > 0 && targets.length === 0) return "Pick a target for " + signature.name + ".";
+  // Preconditions the table can check: melee reach for the attacks, and for Pouncing Charge a run of at least 10 feet toward the target.
+  if (spirit && rulesRangeHeld(spirit) && !isDm) {
+    if (ecoOn() && !rulesOnItsTurn(spirit)) return soul.name + " acts on " + token.name + "'s turn.";
+    const meleeKeys = ["pouncing_charge", "phase_step"];
+    if (meleeKeys.indexOf(signature.id) !== -1) {
+      for (const target of targets) {
+        if (areaDistanceFeet(spirit, target) > 5) return signature.name + ": " + target.name + " is more than 5 feet from " + soul.name + " (melee reach).";
+      }
+    }
+    if (signature.id === "pouncing_charge") {
+      const eco = ecoState(spirit);
+      const target = targets[0];
+      if (ecoOn() && typeof eco.startX === "number") {
+        const closer = areaDistanceFeet({ x: eco.startX, y: eco.startY }, target) - areaDistanceFeet(spirit, target);
+        if (closer < 10) return "Pouncing Charge: " + soul.name + " must move at least 10 feet straight toward " + target.name + " first (it has closed " + Math.max(0, closer) + " feet this turn).";
+      } else if (ecoOn()) {
+        return "Pouncing Charge: move " + soul.name + " at least 10 feet straight toward " + target.name + " first.";
+      }
+    }
+  }
   soul.sigUsed = true;
   const lines = [];
   const dice = [];
@@ -13910,6 +14056,17 @@ function harvestSoulFromEntry(entry, info, cls, nat20, traitId) {
   if (entry.signature && entry.signature.name) notes.push("Signature: " + entry.signature.name + ".");
   if (nat20 && traitId) raw.traits = [traitId];
   else if (nat20) notes.push("Natural 20 on the Reaping check: choose a free Additional Trait.");
+  // R26: the spirit's two attacks use the names this creature's guide entry gives them (an Ape: Fist, Rock Toss), matched to the template's melee or
+  // ranged attack. A name whose kind does not fit the template's attack stays the template's own name.
+  const attackNames = ["", ""];
+  const usedNames = [];
+  const slots = [cls.custom.templates[entry.template] ? cls.custom.templates[entry.template].attackA : null, cls.custom.templates[entry.template] ? cls.custom.templates[entry.template].attackB : null];
+  for (let slot = 0; slot < 2; slot++) {
+    if (!slots[slot]) continue;
+    const match = entry.attacks.find(function (a, index) { return a.kind === slots[slot].kind && usedNames.indexOf(index) === -1; });
+    if (match) { usedNames.push(entry.attacks.indexOf(match)); attackNames[slot] = match.name; }
+  }
+  raw.attackNames = attackNames;
   raw.note = notes.join(" ");
   raw.memory = entry.personality || "";
   return raw;
@@ -14551,6 +14708,9 @@ const LEVELUP_SWAPS = { warlock: ["invocations"], sorcerer: ["metamagic"] };
 
 const LEVELUP_ABILITIES = ["str", "dex", "con", "int", "wis", "cha"];
 
+// Cantrips from the extra spell pack (not the Player's Handbook): the DM can still give them; the level-up lists leave them out.
+const LVL_OTHER_BOOK_CANTRIPS = ["booming_blade", "control_flames", "frostbite", "green_flame_blade", "gust", "infestation", "lightning_lure", "sword_burst"];
+
 function lvlPending(token) {
   return token && token.character && token.character.levelUp ? token.character.levelUp : null;
 }
@@ -14965,7 +15125,7 @@ function lvlBuildSteps(ctx) {
   if (ctx.entry.subclass === "" && cls.subclasses.length > 0 && ctx.to >= cls.subclassLevel) {
     steps.push({
       id: "subclass", kind: "subclass", title: "Choose a subclass", required: true,
-      options: cls.subclasses.map(function (sub) { return { id: sub.id, name: sub.name, text: sub.summary }; })
+      options: cls.subclasses.map(function (sub) { return { id: sub.id, name: sub.name, text: sub.summary, features: (sub.features || []).map(function (f) { return { name: f.name, level: f.level, text: f.text }; }) }; })
     });
   }
 
@@ -15231,6 +15391,7 @@ function lvlBuildSpellStep(ctx) {
     if (!rulesSpellOnList(cls, ctx.eff.level, spell)) continue;
     if (granted.indexOf(spell.id) !== -1 || known.indexOf(spell.id) !== -1 || other.indexOf(spell.id) !== -1) continue;
     if (spell.subclass !== "" && spell.subclass !== ctx.eff.subclass) continue;
+    if (spell.level === 0 && LVL_OTHER_BOOK_CANTRIPS.indexOf(spell.id) !== -1) continue;   // Tasha's / Xanathar's cantrips are not offered as class picks
     if (spell.level === 0) cantripOptions.push(spell.id);
     else if (spell.level <= limits.maxLevel) spellOptions.push(spell.id);
   }
@@ -15437,6 +15598,17 @@ function lvlAddFeat(character, name) {
 }
 
 // Applies every valid answer. With force (DM only) missing required answers are skipped.
+// The level the DM wants the character taken to in one go (a level 11 Sorcerer): the player is walked through each level in turn.
+// 0 when only the next level was asked for.
+function lvlTargetLevel(wanted, character, entry) {
+  const level = Math.floor(Number(wanted));
+  if (!(level > 0)) return 0;
+  const from = entry ? entry.level : 0;
+  const others = character.classes.reduce(function (sum, item) { return sum + (item === entry ? 0 : item.level); }, 0);
+  const top = Math.min(20, 20 - others);
+  return level > from + 1 ? Math.min(level, top) : 0;
+}
+
 function lvlFinish(token, force) {
   const ctx = lvlContext(token);
   if (!ctx) return "That level up no longer fits this character.";
@@ -15511,6 +15683,13 @@ function lvlFinish(token, force) {
     log.push(pool.name + " refilled (" + pool.max + ")");
   }
   addRoll("DM", false, token.name + " reaches " + ctx.cls.name + " " + ctx.to + (missing.length > 0 ? " (DM override)" : ""), log, []);
+  // The DM asked for a higher level: the next level up starts at once with the same class.
+  if (ctx.pending.targetLevel > ctx.to) {
+    const next = { classId: ctx.cls.id, before: JSON.stringify({ character: token.character, sheet: token.sheet, hp: token.hp, maxHp: token.maxHp, xp: typeof token.xp === "number" ? token.xp : null }),
+      fromLevel: ctx.to, toLevel: ctx.to + 1, answers: {}, hpRolled: null, addedEntry: false, createdCharacter: false, abilityMode: "", equipMode: "", originMode: "", abilityRoll: null, rerollOk: false, targetLevel: ctx.pending.targetLevel };
+    ctx.character.levelUp = next;
+    lvlRefreshSheet(token);
+  }
   return null;
 }
 
@@ -15541,7 +15720,7 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
     }
     // The character as it is before this level up, kept so the DM can undo the level later (levelUndo).
     const before = JSON.stringify({ character: token.character || null, sheet: token.sheet, hp: token.hp, maxHp: token.maxHp, xp: typeof token.xp === "number" ? token.xp : null });
-    const pending = { classId: cls.id, before: before, fromLevel: entry ? entry.level : 0, toLevel: (entry ? entry.level : 0) + 1, answers: {}, hpRolled: null, addedEntry: !entry, createdCharacter: !token.character, abilityMode: action.abilities === "roll" && !token.character ? "roll" : "", equipMode: action.equipment === "start" && !token.character ? "start" : "", originMode: action.origin === "skip" && !token.character ? "skip" : "", abilityRoll: null, rerollOk: false };
+    const pending = { classId: cls.id, before: before, fromLevel: entry ? entry.level : 0, toLevel: (entry ? entry.level : 0) + 1, answers: {}, hpRolled: null, addedEntry: !entry, createdCharacter: !token.character, abilityMode: action.abilities === "roll" && !token.character ? "roll" : "", equipMode: action.equipment === "start" && !token.character ? "start" : "", originMode: action.origin === "skip" && !token.character ? "skip" : "", abilityRoll: null, rerollOk: false, targetLevel: lvlTargetLevel(action.targetLevel, character, entry) };
     if (!entry) character.classes.push({ id: cls.id, level: 1, subclass: "" });
     token.character = character;
     character.levelUp = pending;
@@ -16215,6 +16394,7 @@ RULES_VIEW_HOOKS.push(function (token, view) {
       action: ["action", "bonus", "reaction", "free"].indexOf(use.action) !== -1 ? use.action : "action",
       needs: ["none", "self", "targets", "allies"].indexOf(use.needs) !== -1 ? use.needs : "none",
       maxTargets: typeof use.maxTargets === "number" ? use.maxTargets : 1,
+      area: use.area && typeof use.area === "object" ? use.area : null,   // a cone or line from you (Breath Weapon): targets are the creatures inside it
       riderOnly: use.riderOnly === true,
       needsTile: typeof use.teleport === "number" || !!use.teleportRoll || !!use.illusion || !!use.placeZone,
       rider: !!(use.rider && typeof use.rider === "object"),
@@ -16298,6 +16478,16 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
       const target = hostFindToken(id);
       if (!target || !canSeeToken(target, name, isDm)) return "One of those targets is no longer there.";
       if (targets.indexOf(target) === -1) targets.push(target);
+    }
+  }
+  // area: the creatures must stand inside the cone, line or burst the use makes, aimed with action.point (Dragonborn Breath Weapon).
+  // A use with an area is placed on the map; picking creatures anywhere is refused.
+  if (use.area && typeof use.area === "object" && (needs === "targets" || needs === "allies")) {
+    const aim = action.point && Number.isFinite(Number(action.point.x)) && Number.isFinite(Number(action.point.y))
+      ? { x: Math.floor(Number(action.point.x)), y: Math.floor(Number(action.point.y)) } : null;
+    if (!aim) return "Aim " + use.name + " first: tap the map to place its " + use.area.shape + ".";
+    for (const target of targets) {
+      if (target.id !== token.id && !areaContains(use.area, token, aim, target.x, target.y)) return target.name + " is outside the " + use.area.size + "-foot " + use.area.shape + " of " + use.name + ".";
     }
   }
   // Range: a feature with rangeFt reaches creatures within that many feet (Lay on Hands 5, Bardic Inspiration 60). rangeFtLevels
@@ -17853,6 +18043,24 @@ function attacksSupportEntry(token, entry, cls, spell, limits) {
   };
 }
 
+// R37: spells that neither hit, make a save, heal nor lay an effect (Dancing Lights, Light, Mage Hand, Prestidigitation, Message ...). Listed in
+// their own Utility group; cast at a creature or at any square.
+function attacksUtilityEntry(token, entry, cls, spell, limits) {
+  if (!Array.isArray(spell.steps)) return null;
+  if (spell.steps.some(function (step) { return ["attack", "save", "heal", "tempHp", "maxHpBoost", "effect", "condition", "spawn", "teleport", "table"].indexOf(step.type) !== -1; })) return null;
+  if (spell.level > Math.max(limits.maxLevel || 0, 0) && spell.level !== 0) return null;
+  const selfOnly = String(spell.range || "").toLowerCase().indexOf("self") === 0 && !spell.area;
+  const top = spell.level === 0 ? 0 : Math.max(spell.level, Math.min(9, limits.maxLevel));
+  return {
+    classId: cls.id, spellId: spell.id, name: spell.name, level: spell.level, support: true, utility: true,
+    kind: "utility", ability: "", damage: "", what: spell.text || "", castingTime: spell.castingTime,
+    concentration: spell.concentration === true,
+    maxTargets: Math.max(1, spell.maxTargets || 1), needsTarget: false, selfOnly: selfOnly,
+    repeat: false, area: spell.area || null, rangeFeet: areaRangeFeet(spell), summon: false,
+    topLevel: top, dc: 0, attack: 0, costsPool: ""
+  };
+}
+
 // Where a character's spells come from: each class, then the species, feats (Magic Initiate, Fey-Touched...) and magic items,
 // which are cast as the "species", "featspell" and "itemspell" classes. Spells from those three are not upcast from here.
 function attacksSpellSources(token) {
@@ -17881,6 +18089,7 @@ function attacksSpellSources(token) {
 RULES_VIEW_HOOKS.push(function (token, view) {
   const list = [];
   const support = [];
+  const utilityList = [];
   const seen = [];
   for (const source of attacksSpellSources(token)) {
     for (const id of source.ids) {
@@ -17891,14 +18100,18 @@ RULES_VIEW_HOOKS.push(function (token, view) {
       const item = attacksSpellEntry(token, source.entry, source.cls, spell, source.limits);
       if (item) { list.push(item); continue; }
       const help = attacksSupportEntry(token, source.entry, source.cls, spell, source.limits);
-      if (help) support.push(help);
+      if (help) { support.push(help); continue; }
+      const utility = attacksUtilityEntry(token, source.entry, source.cls, spell, source.limits);
+      if (utility) utilityList.push(utility);
     }
   }
   const order = function (a, b) { return a.level - b.level || a.name.localeCompare(b.name); };
   list.sort(order);
   support.sort(order);
+  utilityList.sort(order);
   view.spellAttacks = list;
   view.spellSupport = support;
+  view.spellUtility = utilityList;
 });
 
 // Unarmed Strike: 1 + Strength modifier (a Monk uses the Martial Arts die and the better of Strength and Dexterity).
@@ -17955,6 +18168,20 @@ RULES_ATTACK_HOOKS.push(function (token, list) {
   });
 });
 
+// A weapon conjured by a spell (Shadow Blade): while the effect lasts, the attack list shows a melee attack for it.
+RULES_ATTACK_HOOKS.push(function (token, list) {
+  for (const effect of token.effects || []) {
+    const weapon = effect.conjured;
+    if (!weapon) continue;
+    const bonus = typeof weapon.bonus === "number" ? weapon.bonus : rulesProfBonus(rulesTotalLevel(token.character || { classes: [] }));
+    list.push({
+      id: "conjured_" + effect.id, name: weapon.name, kind: "attack", bonus: bonus, damage: weapon.dice, damageType: weapon.type,
+      dc: 10, ability: "", half: false, targets: 1, repeat: false, effect: null, computed: true, reach: 1,
+      note: effect.note || ""
+    });
+  }
+});
+
 // The DM can clear a marked area (a concentration spell's zone) without ending the concentration.
 RULES_ACTION_HOOKS.push(function (action, name, isDm) {
   if (action.type !== "zoneRemove") return undefined;
@@ -17977,7 +18204,11 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
 
 const EQUIP_SLOTS = ["armor", "shield", "main", "off"];
 
+// R4: a custom item (a quest item, a keepsake) has no entry in the equipment list. The entry carries its own name and note.
+const EQUIP_CUSTOM_ITEM = { id: "custom_item", name: "Custom item", cost: 0, weight: 0, cat: "gear" };
+
 function equipItem(id) {
+  if (id === "custom_item") return EQUIP_CUSTOM_ITEM;
   return CONTENT.equipment.items[id] || null;
 }
 
@@ -18038,6 +18269,7 @@ function equipPlus(entry) {
 }
 
 function equipEntryName(entry) {
+  if (entry.id === "custom_item") return typeof entry.customName === "string" && entry.customName !== "" ? entry.customName : "Custom item";
   const item = equipItem(entry.id);
   if (!item) return entry.id;
   const magic = entry.magicId ? equipMagicItem(entry) : null;
@@ -18568,6 +18800,44 @@ function equipThrowables(character) {
 }
 
 // The attack for throwing one inventory entry. Strength, or the better of Strength and Dexterity with Finesse (a Dart).
+// What a potion does to one creature: the drinker (Use) or the creature in the square where it was thrown. `use` is the item's effect data;
+// `type2` is the damage type chosen for a Resistance potion. Lines are added to `lines`.
+function equipApplyUse(target, use, type2, lines) {
+  if (use.setStr) {
+    if (!target.character) lines.push(target.name + " is not changed by the potion.");
+    else if (target.sheet.abilities.str >= use.setStr) lines.push("The potion has no effect: Strength is already " + target.sheet.abilities.str + " or more.");
+    else {
+      target.character.potionStr = { score: use.setStr, rounds: 600 };
+      equipSyncAbilities(target);
+      lines.push(target.name + "'s Strength is " + use.setStr + " for 1 hour.");
+    }
+  }
+  if (use.haste) {
+    addEffectTo(target, { name: "Haste", acBonus: 2, speedMult: 2, saveAdv: ["dex"], info: true, roundsLeft: 10, note: "Speed doubled, +2 AC, advantage on Dexterity saves, one extra action each turn (no Concentration, no lethargy)." }, true);
+    lines.push(target.name + " is Hasted for 1 minute.");
+  }
+  if (use.heal) {
+    const rolled = rollDice(use.heal, false);
+    if (!rolled) return "Bad dice on that potion.";
+    if (rulesNoHeal(target)) lines.push(target.name + " cannot regain hit points right now.");
+    else if (target.hp !== null) {
+      target.hp = Math.min(target.maxHp !== null ? target.maxHp : target.hp + rolled.total, target.hp + rolled.total);
+      rulesHealed(target, rolled.total);
+      lines.push(target.name + " regains " + rolled.text + " = " + rolled.total + " hit points.");
+    }
+  }
+  if (use.tempHp) { target.tempHp = Math.max(target.tempHp || 0, use.tempHp); lines.push(target.name + " gains " + use.tempHp + " temporary hit points (1 hour)."); }
+  if (Array.isArray(use.cure) && use.cure.length > 0) {
+    const before = target.effects.length;
+    target.effects = target.effects.filter(function (effect) { return use.cure.indexOf(effect.name) === -1 && !(typeof effect.exhaustion === "number" && use.cure.indexOf("Exhaustion") !== -1); });
+    lines.push(use.cure.join(", ") + (target.effects.length < before ? " ended on " + target.name + "." : ": none to end."));
+  }
+  if (type2) {
+    addEffectTo(target, { name: "Resistance (" + type2 + ")", dice: "", mode: "none", against: "none", once: false, resist: [type2], on: { attack: false, save: false, check: false, damage: false }, note: "Resistance to " + type2 + " damage for 1 hour (the DM ends it)." }, true);
+    lines.push(target.name + " has Resistance to " + type2 + " damage for 1 hour.");
+  }
+}
+
 function equipThrowAttack(token, uid) {
   const character = token.character;
   if (!character) return null;
@@ -18700,7 +18970,7 @@ function equipItemText(item) {
   }
   if (item.shield) return "+" + item.shield.bonus + " AC";
   if (item.contents) return item.contents.map(function (e) { const it = equipItem(e.id); return (e.count > 1 ? e.count + " " : "") + (it ? it.name : e.id); }).join(", ");
-  return item.cost > 0 ? item.cost + " gp" : "";
+  return "";   // the value is not part of the text: only the DM is shown it (inventory entry "value")
 }
 
 RULES_VIEW_HOOKS.push(function (token, view) {
@@ -18709,7 +18979,7 @@ RULES_VIEW_HOOKS.push(function (token, view) {
     const item = equipItem(entry.id);
     return {
       uid: entry.uid, id: entry.id, name: equipEntryName(entry), count: entry.count, slot: entry.slot,
-      cat: item ? item.cat : "gear", weight: item ? item.weight : 0, text: equipItemText(item),
+      cat: item ? item.cat : "gear", weight: item ? item.weight : 0, value: item && item.cost > 0 ? item.cost : 0, text: entry.id === "custom_item" ? (entry.customNote || "") : equipItemText(item),
       magic: equipMagicItem(entry) ? { rarity: equipMagicItem(entry).magic.rarity, attune: equipMagicItem(entry).magic.attune, attuneBy: equipMagicItem(entry).magic.attuneBy, kind: equipMagicItem(entry).magic.kind, text: equipMagicItem(entry).magic.text, plus: entry.plus || 0 } : null,
       bonded: typeof entry.bonded === "number", attuned: entry.attuned === true, resist: entry.resist || "", cursed: !!(equipMagicItem(entry) && equipMagicItem(entry).fx && equipMagicItem(entry).fx.cursed), curseHeld: equipCurseHeld(entry),
       speedLeft: equipMagicItem(entry) && equipMagicItem(entry).fx && equipMagicItem(entry).fx.speedMult ? Math.max(0, equipMagicItem(entry).fx.maxRounds - (entry.rounds || 0)) : null,
@@ -18923,38 +19193,7 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
     const problem = ecoCheck(token, useKind, isDm);
     if (problem) return problem;
     const lines = [];
-    if (use.setStr) {
-      if (token.sheet.abilities.str >= use.setStr) lines.push("The potion has no effect: Strength is already " + token.sheet.abilities.str + " or more.");
-      else {
-        character.potionStr = { score: use.setStr, rounds: 600 };
-        equipSyncAbilities(token);
-        lines.push(token.name + "'s Strength is " + use.setStr + " for 1 hour.");
-      }
-    }
-    if (use.haste) {
-      addEffectTo(token, { name: "Haste", acBonus: 2, speedMult: 2, saveAdv: ["dex"], info: true, roundsLeft: 10, note: "Speed doubled, +2 AC, advantage on Dexterity saves, one extra action each turn (no Concentration, no lethargy)." }, true);
-      lines.push(token.name + " is Hasted for 1 minute.");
-    }
-    if (use.heal) {
-      const rolled = rollDice(use.heal, false);
-      if (!rolled) return "Bad dice on that potion.";
-      if (rulesNoHeal(token)) lines.push(token.name + " cannot regain hit points right now.");
-      else if (token.hp !== null) {
-        token.hp = Math.min(token.maxHp !== null ? token.maxHp : token.hp + rolled.total, token.hp + rolled.total);
-        rulesHealed(token, rolled.total);
-        lines.push(token.name + " regains " + rolled.text + " = " + rolled.total + " hit points.");
-      }
-    }
-    if (use.tempHp) { token.tempHp = Math.max(token.tempHp || 0, use.tempHp); lines.push(token.name + " gains " + use.tempHp + " temporary hit points (1 hour)."); }
-    if (Array.isArray(use.cure) && use.cure.length > 0) {
-      const before = token.effects.length;
-      token.effects = token.effects.filter(function (effect) { return use.cure.indexOf(effect.name) === -1 && !(typeof effect.exhaustion === "number" && use.cure.indexOf("Exhaustion") !== -1); });
-      lines.push(use.cure.join(", ") + (token.effects.length < before ? " ended on " + token.name + "." : ": none to end."));
-    }
-    if (type2) {
-      addEffectTo(token, { name: "Resistance (" + type2 + ")", dice: "", mode: "none", against: "none", once: false, resist: [type2], on: { attack: false, save: false, check: false, damage: false }, note: "Resistance to " + type2 + " damage for 1 hour (the DM ends it)." }, true);
-      lines.push(token.name + " has Resistance to " + type2 + " damage for 1 hour.");
-    }
+    equipApplyUse(token, use, type2, lines);
     ecoSpend(token, useKind);
     if (use.keep) entry.usedToday = true;
     else {
@@ -18962,6 +19201,36 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
       if (entry.count <= 0) character.inventory.splice(character.inventory.indexOf(entry), 1);
     }
     addRoll(name, false, token.name + " uses " + (magic ? magic.name : equipEntryName(entry)), lines, []);
+    return null;
+  }
+  if (type === "throwItem") {
+    // R17 / R39: throw a potion at any square within 30 feet (an Action). It shatters there and works on the creature standing in that square.
+    if (!canControlToken(token, name, isDm)) return "You can only throw your own things.";
+    const entry = equipFindEntry(character, action.uid);
+    if (!entry) return "That item is not in the pack.";
+    const magic = equipMagicItem(entry);
+    const use = magic && magic.fx && magic.fx.use ? magic.fx.use : EQUIP_USE_BASE[entry.id];
+    if (!use) return "Only potions and other usable items can be thrown this way. Use the Throw a Weapon attack for weapons.";
+    const x = cleanInt(action.x, 0, gridCols() - 1, -1);
+    const y = cleanInt(action.y, 0, gridRows() - 1, -1);
+    if (x < 0 || y < 0) return "Pick a square to throw it at.";
+    const feet = Math.max(Math.abs(x - token.x), Math.abs(y - token.y)) * 5;
+    if (feet > 30) return "Too far: a thrown potion reaches 30 feet (that square is " + feet + " feet away).";
+    let type2 = "";
+    if (use.resistChoice) {
+      type2 = String(action.damageType || "");
+      if (DAMAGE_TYPES.indexOf(type2) === -1) return "Name the damage type the potion gives Resistance to.";
+    }
+    const problem = ecoCheck(token, "action", isDm);
+    if (problem) return problem;
+    const lines = [];
+    const hit = state.tokens.find(function (other) { const t = sizeTiles(other); return x >= other.x && x < other.x + t && y >= other.y && y < other.y + t && typeof other.hp === "number"; });
+    if (hit) { lines.push(token.name + " throws " + (magic ? magic.name : equipEntryName(entry)) + " at " + hit.name + "."); equipApplyUse(hit, use, type2, lines); }
+    else lines.push(token.name + " throws " + (magic ? magic.name : equipEntryName(entry)) + " at an empty square: it shatters and is wasted.");
+    ecoSpend(token, "action");
+    entry.count -= 1;
+    if (entry.count <= 0) character.inventory.splice(character.inventory.indexOf(entry), 1);
+    addRoll(name, false, token.name + " throws a potion", lines, []);
     return null;
   }
   if (!isDm && type !== "inventoryRemove") return "Only the DM can do that.";
@@ -19201,7 +19470,7 @@ RULES_REST_HOOKS.push(function (token, kind) {
 // ---------------------------------------------------------------
 
 const GROUND_LOCK_MS = 10 * 60 * 1000;
-const GROUND_FIELDS = ["id", "count", "magicId", "plus", "charges", "resist"];
+const GROUND_FIELDS = ["id", "count", "magicId", "plus", "charges", "resist", "customName", "customNote"];
 
 function groundTable() {
   if (!state.ground || typeof state.ground !== "object") state.ground = {};
@@ -19227,7 +19496,7 @@ function groundPut(x, y, entry, count) {
   const table = groundTable();
   if (!Array.isArray(table[key])) table[key] = [];
   const list = table[key];
-  const plain = !entry.magicId && !entry.plus && !entry.charges && !entry.resist;
+  const plain = !entry.magicId && !entry.plus && !entry.charges && !entry.resist && !entry.customName;
   const same = plain ? list.find(function (item) { return item.id === entry.id && !item.magicId && !item.plus && !item.charges && !item.resist; }) : null;
   if (same) {
     same.count = Math.min(9999, same.count + count);
@@ -19278,7 +19547,7 @@ function groundView(name, isDm) {
     if (!open) open = { tokenId: lock.tokenId, squares: [], items: [] };
     open.squares.push(key);
     for (const item of table[key] || []) {
-      open.items.push({ gid: item.gid, square: key, name: equipEntryName(item), count: item.count, text: groundItemText(item) });
+      open.items.push({ gid: item.gid, square: key, name: equipEntryName(item), count: item.count, text: groundItemText(item), value: isDm ? groundItemValue(item) : 0 });
     }
   }
   return { counts: counts, open: open };
@@ -19288,6 +19557,7 @@ function groundView(name, isDm) {
 function groundItemText(entry) {
   const magic = equipMagicItem(entry);
   if (magic && magic.magic && magic.magic.text) return String(magic.magic.text).slice(0, 1500);
+  if (entry.id === "custom_item") return typeof entry.customNote === "string" ? entry.customNote : "";
   const item = equipItem(entry.id);
   if (!item) return "";
   const bits = [];
@@ -19302,8 +19572,13 @@ function groundItemText(entry) {
   if (item.shield) bits.push("Shield, +" + item.shield.bonus + " AC");
   if (entry.plus) bits.push("+" + entry.plus);
   if (typeof item.weight === "number" && item.weight > 0) bits.push(item.weight + " lb");
-  if (typeof item.cost === "number" && item.cost > 0) bits.push(item.cost + " GP");
   return bits.join("  ·  ");
+}
+
+// What the item is worth in gold: only the DM is sent it.
+function groundItemValue(entry) {
+  const item = equipItem(entry.id);
+  return item && typeof item.cost === "number" && item.cost > 0 ? item.cost : 0;
 }
 
 // A weapon thrown at a creature lands on the creature's square.
@@ -19330,10 +19605,17 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
   // The DM puts an item on any square (loot), or opens a square's list without a token.
   if (type === "groundPlace") {
     if (!isDm) return "Only the DM can put items on the map.";
-    const item = equipItem(contentId(action.itemId));
-    if (!item) return "That item is not in the equipment list (load the equipment pack).";
     const x = cleanInt(action.x, 0, gridCols() - 1, 0);
     const y = cleanInt(action.y, 0, gridRows() - 1, 0);
+    // R4: a custom item (quest item) with a name and a note written by the DM.
+    if (action.custom === true) {
+      const customName = cleanText(action.customName, 60);
+      if (customName === "") return "Give the custom item a name.";
+      groundPut(x, y, { id: "custom_item", customName: customName, customNote: cleanText(action.customNote, 600) }, rulesCleanInt(action.count, 1, 999, 1));
+      return null;
+    }
+    const item = equipItem(contentId(action.itemId));
+    if (!item) return "That item is not in the equipment list (load the equipment pack).";
     groundPut(x, y, { id: item.id }, rulesCleanInt(action.count, 1, 999, 1));
     return null;
   }
@@ -19651,7 +19933,7 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
   if (token.hp > 0) return "That character is not at 0 HP.";
   const death = deathState(token);
   if (action.type === "deathRoll") {
-    if (!canControlToken(token, name, isDm)) return "You can only roll for your own character.";
+    if (!isDm) return "Death saves are rolled for you at the start of your turn.";
     if (death.dead) return "That character is dead.";
     if (death.stable) return "That character is already stable.";
     addRoll(name, false, "Death saving throw", [deathRollSave(token)], []);
@@ -19843,6 +20125,16 @@ function rulesClockStable(death) {
   death.regainAt = rulesClockNow() + rollDie(4) * 60;
 }
 
+// 480 -> "8 hours", 1500 -> "1 day 1 hour", 90 -> "1 hour 30 minutes".
+function rulesClockDuration(total) {
+  const parts = [];
+  const days = Math.floor(total / 1440), hours = Math.floor((total % 1440) / 60), mins = total % 60;
+  if (days > 0) parts.push(days + (days === 1 ? " day" : " days"));
+  if (hours > 0) parts.push(hours + (hours === 1 ? " hour" : " hours"));
+  if (mins > 0) parts.push(mins + (mins === 1 ? " minute" : " minutes"));
+  return parts.join(" ");
+}
+
 function rulesClockAdvance(minutes) {
   state.clock.minutes += minutes;
   const now = state.clock.minutes;
@@ -19883,6 +20175,25 @@ function rulesClockAdvance(minutes) {
       }
     }
   }
+  // R42: time passing re-rolls the hazards that hurt at the start of a turn (a damaging zone, a hazard tile) once for each creature still standing in one.
+  for (const token of state.tokens) {
+    if (typeof token.hp !== "number" || token.hp <= 0) continue;
+    const done = {};
+    for (const zone of state.zones || []) {
+      if (!zone.hit || zone.hit.on.indexOf("start") === -1 || done[zone.name] || !zoneAffects(zone, token)) continue;
+      if (!zoneInside(zone, token.x, token.y, zoneCenter(zone))) continue;
+      done[zone.name] = true;
+      const hazard = zoneApply(zone, token);
+      if (hazard !== "") lines.push(hazard);
+    }
+    if (state.terrain && typeof tilePseudoZone === "function") {
+      const tileZone = tilePseudoZone(tileAt(token.x, token.y));
+      if (tileZone && tileZone.hit.on.indexOf("start") !== -1) {
+        const hazard = zoneApply(tileZone, token);
+        if (hazard !== "") lines.push(hazard);
+      }
+    }
+  }
   return lines;
 }
 
@@ -19901,9 +20212,73 @@ function rulesClockAction(action, name, isDm) {
   const amount = Math.floor(Number(action.minutes));
   if (!(amount > 0) || amount > 14400) return "Enter between 1 and 14400 minutes.";
   const lines = rulesClockAdvance(amount);
-  addRoll(name, false, "Time passes: " + amount + " minute(s)", [rulesClockText(state.clock.minutes)].concat(lines), []);
+  addRoll(name, false, "Time passes: " + rulesClockDuration(amount), [rulesClockText(state.clock.minutes)].concat(lines), []);
   return null;
 }
+
+</script>
+  <script>
+// ---------------------------------------------------------------
+// Campaign wiki (R30): pages the DM writes or loads from the wiki folder; players read the shared ones. Pages live in state.wiki.
+// A page is { id, title, text, shared, file }. `file` is the name of the file in the DM folder's wiki folder it came from or goes to.
+// ---------------------------------------------------------------
+
+const WIKI_MAX_PAGES = 300;
+const WIKI_MAX_TEXT = 40000;
+
+function wikiState() {
+  if (!state.wiki || typeof state.wiki !== "object" || !Array.isArray(state.wiki.pages)) state.wiki = { pages: [] };
+  return state.wiki;
+}
+
+function wikiCleanBody(value, max) {
+  return String(value === undefined || value === null ? "" : value).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").replace(/\r\n?/g, "\n").slice(0, max);
+}
+
+// What a viewer receives: the DM sees every page, players the shared ones.
+function wikiView(isDm) {
+  const pages = wikiState().pages.filter(function (page) { return isDm || page.shared !== false; });
+  return { pages: pages.map(function (page) { return { id: page.id, title: page.title, text: page.text, shared: page.shared !== false, file: isDm ? page.file || "" : "" }; }) };
+}
+
+RULES_ACTION_HOOKS.push(function (action, name, isDm) {
+  if (action.type !== "wikiSave" && action.type !== "wikiDelete" && action.type !== "wikiImport") return undefined;
+  if (!isDm) return "Only the DM can change the wiki.";
+  const wiki = wikiState();
+  if (action.type === "wikiDelete") {
+    wiki.pages = wiki.pages.filter(function (page) { return page.id !== action.id; });
+    return null;
+  }
+  // Pages read from the wiki folder: the file name decides which page is replaced.
+  if (action.type === "wikiImport") {
+    const incoming = Array.isArray(action.pages) ? action.pages.slice(0, WIKI_MAX_PAGES) : [];
+    for (const raw of incoming) {
+      if (!raw || typeof raw !== "object") continue;
+      const file = cleanText(raw.file, 120);
+      const title = cleanText(raw.title, 120) || file;
+      if (file === "" || title === "") continue;
+      const text = wikiCleanBody(raw.text, WIKI_MAX_TEXT);
+      const existing = wiki.pages.find(function (page) { return page.file === file; });
+      if (existing) { existing.title = title; existing.text = text; }
+      else if (wiki.pages.length < WIKI_MAX_PAGES) wiki.pages.push({ id: state.nextId++, title: title, text: text, shared: true, file: file });
+    }
+    return null;
+  }
+  const title = cleanText(action.title, 120);
+  if (title === "") return "Give the page a title.";
+  const text = wikiCleanBody(action.text, WIKI_MAX_TEXT);
+  if (typeof action.id === "number") {
+    const page = wiki.pages.find(function (item) { return item.id === action.id; });
+    if (!page) return "That page is gone.";
+    page.title = title;
+    page.text = text;
+    if (typeof action.shared === "boolean") page.shared = action.shared;
+    return null;
+  }
+  if (wiki.pages.length >= WIKI_MAX_PAGES) return "The wiki is full.";
+  wiki.pages.push({ id: state.nextId++, title: title, text: text, shared: action.shared !== false, file: "" });
+  return null;
+});
 
 </script>
   <script>
@@ -20499,6 +20874,10 @@ function autosaveWire() {
     autosaveNow(true, function (ok) { showStatus(ok ? "Backup made." : "Could not make a backup in this browser."); });
   });
   byId("autosaveChoose").addEventListener("click", function () { autosaveChooseFolder(); });
+  byId("dmFolderChoose").addEventListener("click", function () { dmFolderChoose(); });
+  byId("dmFolderPromptChoose").addEventListener("click", function () { show(byId("dmFolderModal"), false); dmFolderChoose(); });
+  byId("dmFolderPromptAllow").addEventListener("click", function () { show(byId("dmFolderModal"), false); autosaveAllowFolder().then(function () { if (dmFolderRoot) packsCheck(true); }); });
+  byId("dmFolderPromptLater").addEventListener("click", function () { show(byId("dmFolderModal"), false); });
   byId("autosaveAllow").addEventListener("click", function () { autosaveAllowFolder(); });
   byId("autosaveRestore").addEventListener("click", function () {
     const slot = byId("autosaveList").value;
@@ -20533,6 +20912,7 @@ function autosaveStart() {
   });
   autosaveRefreshPanel();
   autosaveFolderLoad();
+  dmFolderLoad();
 }
 
 
@@ -20630,6 +21010,83 @@ function autosaveFolderLoad() {
   });
 }
 
+// ---- The DM folder (R31): one folder holds the resource packs (its top level), the saves (saves/) and the wiki pages (wiki/). ----
+let dmFolderRoot = null;   // the DM folder handle (Chrome and Edge)
+
+function dmFolderStoreHandle(handle) {
+  autosaveStore("readwrite", function (store, finish) {
+    if (handle) store.put(handle, "dmFolder");
+    else store.delete("dmFolder");
+    finish(true);
+  }, function () {});
+}
+
+// Makes the saves and wiki folders, points the backups at saves/ and the pack scan at the whole folder.
+async function dmFolderUse(handle) {
+  dmFolderRoot = handle;
+  const saves = await handle.getDirectoryHandle("saves", { create: true });
+  await handle.getDirectoryHandle("wiki", { create: true });
+  autosaveDir = saves;
+  autosaveDirReady = true;
+  autosaveMapWritten = undefined;   // a new folder needs the map again
+  scenesMapsInFolder = {};
+  autosaveStoreHandle(saves);
+  packFolderHandle = handle;
+  PACKS.folderName = handle.name;
+  packsSaveHandle();
+  packsSave();
+}
+
+async function dmFolderChoose() {
+  try {
+    const handle = await window.showDirectoryPicker({ mode: "readwrite", id: "campaign-table-dm-folder" });
+    await dmFolderUse(handle);
+    dmFolderStoreHandle(handle);
+    await autosaveFolderWrite(true);
+    await packsCheck(true);
+    if (typeof wikiLoadFolder === "function") wikiLoadFolder();
+    showStatus("DM folder set: " + handle.name + ". Packs are read from it, saves go to " + handle.name + "/saves, wiki pages are in " + handle.name + "/wiki.");
+  } catch (err) {
+    if (err && err.name !== "AbortError") showStatus("Could not use that folder: " + (err.message || err));
+  }
+  autosaveRefreshFolderLine();
+}
+
+// When the DM opens the table with no DM folder connected (or the browser has taken its permission back), ask for it once per visit.
+let dmFolderAsked = false;
+function dmFolderPrompt() {
+  if (dmFolderAsked || role !== "host" || !autosaveFolderSupported()) return;
+  if (dmFolderRoot && autosaveDirReady) return;
+  dmFolderAsked = true;
+  const known = !!dmFolderRoot;
+  byId("dmFolderPromptTitle").textContent = known ? "Allow access to your DM folder" : "Choose your DM folder";
+  byId("dmFolderPromptText").textContent = known
+    ? "Your DM folder " + dmFolderRoot.name + " is connected, but the browser needs your permission again this visit before it can read the packs and save into it."
+    : "No DM folder is connected. Pick one folder on this computer: the app reads your resource packs from it, saves campaigns and scenes into its saves folder, and keeps wiki pages in its wiki folder. You can also do this later in the DM panel under Automatic backups.";
+  show(byId("dmFolderPromptChoose"), !known);
+  show(byId("dmFolderPromptAllow"), known);
+  show(byId("dmFolderModal"), true);
+}
+
+function dmFolderLoad() {
+  if (!autosaveFolderSupported()) return;
+  autosaveStore("readonly", function (store, finish) {
+    const request = store.get("dmFolder");
+    request.onsuccess = function () { finish(request.result || null); };
+    request.onerror = function () { finish(null); };
+  }, async function (handle) {
+    if (!handle) { dmFolderPrompt(); return; }
+    dmFolderRoot = handle;
+    let allowed = false;
+    try { allowed = (await handle.queryPermission({ mode: "readwrite" })) === "granted"; } catch (err) { allowed = false; }
+    if (allowed) {
+      try { await dmFolderUse(handle); autosaveFolderWrite(true); } catch (err) { /* the folder is gone */ }
+    }
+    autosaveRefreshFolderLine();
+    dmFolderPrompt();
+  });
+}
+
 async function autosaveChooseFolder() {
   try {
     const handle = await window.showDirectoryPicker({ mode: "readwrite", id: "campaign-table-backups" });
@@ -20647,9 +21104,12 @@ async function autosaveChooseFolder() {
 }
 
 async function autosaveAllowFolder() {
-  if (!autosaveDir) return;
+  if (!autosaveDir && !dmFolderRoot) return;
   try {
-    autosaveDirReady = (await autosaveDir.requestPermission({ mode: "readwrite" })) === "granted";
+    if (dmFolderRoot) {
+      autosaveDirReady = (await dmFolderRoot.requestPermission({ mode: "readwrite" })) === "granted";
+      if (autosaveDirReady) await dmFolderUse(dmFolderRoot);
+    } else autosaveDirReady = (await autosaveDir.requestPermission({ mode: "readwrite" })) === "granted";
   } catch (err) {
     autosaveDirReady = false;
   }
@@ -20662,6 +21122,7 @@ function autosaveRefreshFolderLine() {
   if (!line) return;
   const choose = byId("autosaveChoose");
   const allow = byId("autosaveAllow");
+  if (!autosaveFolderSupported() && byId("dmFolderChoose")) byId("dmFolderChoose").style.display = "none";
   if (!autosaveFolderSupported()) {
     line.textContent = "This browser cannot write to a folder by itself. Use Chrome or Edge for automatic backups to a folder, or Save backup to file now and then.";
     choose.style.display = "none";
@@ -20670,7 +21131,15 @@ function autosaveRefreshFolderLine() {
   }
   choose.style.display = "";
   choose.textContent = autosaveDir ? "Change backup folder" : "Choose a backup folder on this computer";
-  allow.style.display = autosaveDir && !autosaveDirReady ? "" : "none";
+  allow.style.display = (autosaveDir || dmFolderRoot) && !autosaveDirReady ? "" : "none";
+  const dmLine = byId("dmFolderLine");
+  const dmChoose = byId("dmFolderChoose");
+  if (dmChoose) dmChoose.textContent = dmFolderRoot ? "Change the DM folder" : "Choose the DM folder";
+  if (dmLine) {
+    if (!dmFolderRoot) dmLine.textContent = "No DM folder yet. Choose one folder on this computer: the app reads your resource packs from it, saves your campaign and scenes into its saves folder, and keeps the wiki pages in its wiki folder.";
+    else if (!autosaveDirReady) dmLine.textContent = "DM folder " + dmFolderRoot.name + ": click Allow so the page can read and save there again (the browser asks once per visit).";
+    else dmLine.textContent = "DM folder: " + dmFolderRoot.name + ". Saves go to " + dmFolderRoot.name + "/saves" + (autosaveFolderTime > 0 ? " (last written " + autosaveAgo(autosaveFolderTime) + ")" : "") + ". Packs are read from " + dmFolderRoot.name + ". Wiki pages: " + dmFolderRoot.name + "/wiki.";
+  }
   if (!autosaveDir) line.textContent = "No backup folder chosen yet: backups are only kept inside the browser.";
   else if (!autosaveDirReady) line.textContent = "Folder " + autosaveDir.name + ": click Allow to let this page write to it again (the browser asks once per visit).";
   else if (autosaveFolderError !== "") line.textContent = "Folder " + autosaveDir.name + ": the last write failed (" + autosaveFolderError + ").";
@@ -21145,6 +21614,13 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
   return null;
 });
 
+// Areas the book lets the caster move after casting (Moonbeam, Flaming Sphere, Incendiary Cloud, Dust Devil). Every other area (Grease,
+// Web, Fog Cloud ...) stays where it was made; only the DM can take it away.
+const ZONE_MOVABLE_SPELLS = ["moonbeam", "flaming_sphere", "incendiary_cloud", "dust_devil"];
+function zoneCanMove(zone) {
+  return ZONE_MOVABLE_SPELLS.indexOf(zoneSpellId(zone)) !== -1;
+}
+
 // Move an area that was placed on a point (a cloud, a sphere) to another point.
 RULES_ACTION_HOOKS.push(function (action, name, isDm) {
   if (action.type !== "zoneMove") return undefined;
@@ -21152,7 +21628,7 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
   if (!zone) return "That area is gone.";
   const owner = hostFindToken(zone.ownerId);
   if (!isDm && !(owner && canControlToken(owner, name, false))) return "Only the caster or the DM can move that.";
-  if (zone.area.origin !== "point" || zone.follow) return "That area cannot be moved.";
+  if (zone.area.origin !== "point" || zone.follow || !zoneCanMove(zone)) return "That area cannot be moved: it stays where it was made.";
   if (zoneSpellId(zone) === "flaming_sphere" && typeof zoneSphereRoll === "function") return zoneSphereRoll(zone, action, name, isDm);
   if (zoneSpellId(zone) === "wall_of_fire") return "A Wall of Fire stays where it was made.";
   zone.point = { x: cleanInt(action.x, 0, gridCols() - 1, zone.point.x), y: cleanInt(action.y, 0, gridRows() - 1, zone.point.y) };
@@ -21496,9 +21972,9 @@ function speciesUsesFor(token) {
     const steps = [{ type: "save", ability: "dex", dc: "8 + @prof + @con", damage: [{ dice: "[breath]d10", type: option.damageType }], half: true }];
     const cost = { pool: "breath_weapon", amount: 1 };
     add("Breath Weapon", speciesUse("breath_cone", "Breath Weapon (15-foot Cone)", "Replaces one attack when you take the Attack action. Dexterity save, DC 8 + Constitution modifier + Proficiency Bonus: " + option.damageType + " damage, half on a success.",
-      steps, { action: "free", needs: "targets", maxTargets: 12, cost: cost, dcAbility: "con" }));
+      steps, { action: "free", needs: "targets", maxTargets: 12, cost: cost, dcAbility: "con", area: { shape: "cone", size: 15, origin: "self", walls: "block" } }));
     add("Breath Weapon", speciesUse("breath_line", "Breath Weapon (30-foot Line)", "The same breath in a 30-foot Line 5 feet wide.",
-      steps, { action: "free", needs: "targets", maxTargets: 12, cost: cost, dcAbility: "con" }));
+      steps, { action: "free", needs: "targets", maxTargets: 12, cost: cost, dcAbility: "con", area: { shape: "line", size: 30, origin: "self", width: 5, walls: "block" } }));
     if (total >= 5) {
       add("Draconic Flight", speciesUse("draconic_flight", "Draconic Flight", "Bonus Action, 10 minutes: spectral wings and a Fly Speed equal to your Speed. Once per Long Rest.",
         [{ type: "effect", to: "self", name: "Draconic Flight", effect: { name: "Draconic Flight", info: true, modes: { fly: "speed" }, note: "Fly Speed equal to your Speed. Ends if Incapacitated." }, durationRounds: 100 }],
@@ -22293,10 +22769,30 @@ function zoneSpellAffectsZones(spell) {
 }
 
 // After a spell with an area resolves at a point: what it does to the zones and creatures already there.
+// R14: fire that touches Grease sets it alight. The zone stays where it is but burns: fire damage when a creature enters or starts its turn
+// there, and it is no longer slippery. `squares` are the squares the fire reached ({x, y} each).
+function zoneIgniteGrease(squares, lines) {
+  for (const zone of state.zones) {
+    if (zoneSpellId(zone) !== "grease" || zone.burning === true) continue;
+    const center = zoneCenter(zone);
+    const shape = Array.isArray(zone.squares) ? zone.squares.map(function (key) { const p = key.split(","); return { x: Number(p[0]), y: Number(p[1]) }; }) : areaSquaresOpen(zone.area, center, zone.point);
+    const touched = shape.some(function (square) { return zoneCovers(zone, center, square.x, square.y) && squares.some(function (s) { return s.x === square.x && s.y === square.y; }); });
+    if (!touched) continue;
+    zone.burning = true;
+    zone.name = "Burning Grease";
+    zone.difficult = false;
+    zone.hit = { on: ["enter", "start"], ability: "", damage: typeof TILE_FIRE_DAMAGE === "string" ? TILE_FIRE_DAMAGE : "1d6", type: "fire", half: false };
+    if (!zone.stamps) zone.stamps = {};
+    zone.note = "The grease is on fire: creatures take fire damage when they enter it or start their turn in it.";
+    lines.push("The grease catches fire.");
+  }
+}
+
 function zoneMixAfterCast(spell, token, point, ctx, lines) {
   if (!spell.area || !point) return;
   const origin = { x: token.x, y: token.y };
   const mix = ZONE_MIX[spell.id] || null;
+  if (zoneSpellIsFire(spell)) zoneIgniteGrease(areaSquaresOpen(spell.area, origin, point), lines);
   if (zoneSpellIsFire(spell)) {
     // A zone made of its own squares (Wall of Fire, Flaming Sphere) burns only where it actually is.
     const made = state.zones.find(function (zone) { return zone.spellId === spell.id && zone.ownerId === token.id && Array.isArray(zone.squares); });
@@ -23115,6 +23611,33 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
       <button id="spellEdLoadJson" type="button">Load into the form</button>
     </div>
   </div>
+  <div id="dmFolderModal" class="modalBack hiddenRow">
+    <div class="modalCard" role="dialog" aria-label="Choose the DM folder">
+      <h3 id="dmFolderPromptTitle">Choose your DM folder</h3>
+      <p id="dmFolderPromptText" class="small"></p>
+      <div class="buttonRow">
+        <button id="dmFolderPromptChoose" type="button" class="primary">Choose the DM folder</button>
+        <button id="dmFolderPromptAllow" type="button" class="primary hiddenRow">Allow access</button>
+        <button id="dmFolderPromptLater" type="button">Not now</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="wikiModal" class="modalBack hiddenRow">
+    <div class="modalCard wikiCard" role="dialog" aria-label="Campaign wiki">
+      <div class="wikiHead">
+        <h3>Campaign wiki</h3>
+        <input id="wikiSearch" type="search" placeholder="Search the wiki" autocomplete="off">
+        <button id="wikiPopOut" type="button" title="Open the wiki in its own window">Pop out</button>
+        <button id="wikiClose" type="button">Close</button>
+      </div>
+      <div class="wikiBody">
+        <div id="wikiList" class="wikiList"></div>
+        <div id="wikiPage" class="wikiPage"></div>
+      </div>
+    </div>
+  </div>
+
   <div id="settingsModal" class="modalBack hiddenRow">
     <div class="modalCard" role="dialog" aria-label="Settings">
       <h3 class="settingsHead">Settings</h3>
@@ -23146,6 +23669,14 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
         <div class="settingRow">
           <label for="cbToggle" class="settingTitle">Colour-blind mode</label>
           <input id="cbToggle" type="checkbox" class="switch" role="switch" title="Colour-blind safe colours for the menus and the map. Saved on this device only.">
+        </div>
+        <div class="settingRow">
+          <label for="walkToggle" class="settingTitle">Animate token walking</label>
+          <input id="walkToggle" type="checkbox" class="switch" role="switch" title="A token that moves walks along its path instead of jumping. Off when Reduce motion is on. Saved on this device only.">
+        </div>
+        <div class="settingRow">
+          <label for="gridToggle" class="settingTitle">Show grid lines</label>
+          <input id="gridToggle" type="checkbox" class="switch" role="switch" title="Turn the grid lines off. Ranges, areas and the movement ruler still show. Saved on this device only.">
         </div>
         <div class="settingRow">
           <label for="gfxToggle" class="settingTitle">Enhanced graphics</label>
@@ -23592,6 +24123,18 @@ function cleanEffect(input) {
   // Synaptic Static: dice added to the Constitution saving throws that keep Concentration.
   if (typeof input.concDice === "string" && /^-?\d+d\d+$/.test(input.concDice.replace(/\s+/g, ""))) effect.concDice = input.concDice.replace(/\s+/g, "");
   if (typeof input.exhaustion === "number" && input.exhaustion >= 1) effect.exhaustion = Math.min(6, Math.floor(input.exhaustion));
+  // A weapon the effect puts in the creature's hand (Shadow Blade): shown in the attack list while the effect lasts.
+  if (input.conjured && typeof input.conjured === "object") {
+    const c = input.conjured;
+    const dice = cleanText(c.dice, 40).replace(/\s+/g, "").toLowerCase();
+    if (dice !== "" && rollDice(dice, false)) {
+      effect.conjured = { name: cleanText(c.name, 30) || "Weapon", dice: dice, type: cleanText(c.type, 20).toLowerCase(), upcast: c.upcast === true, finesse: c.finesse === true, reach: 1 };
+      if (typeof c.bonus === "number" && isFinite(c.bonus)) effect.conjured.bonus = Math.floor(c.bonus);
+      if (typeof c.ability === "string" && RULES_ABILITIES.indexOf(c.ability) !== -1) effect.conjured.ability = c.ability;
+      if (Array.isArray(c.thrown) && c.thrown.length === 2 && c.thrown.every(function (n) { return typeof n === "number" && n > 0; })) effect.conjured.thrown = [Math.floor(c.thrown[0]), Math.floor(c.thrown[1])];
+      effect.info = true;
+    }
+  }
   if (input.info === true) effect.info = true;
   if (typeof input.note === "string") effect.note = cleanText(input.note, 200);
   if (input.endsOnRest === "short" || input.endsOnRest === true || input.endsOnRest === "long") effect.endsOnRest = input.endsOnRest;
@@ -24420,6 +24963,7 @@ function hostBuildView(name, isDm) {
     party: party,
     players: players,
     clock: { minutes: state.clock.minutes, enforceRest: state.clock.enforceRest === true },
+    wiki: typeof wikiView === "function" ? wikiView(isDm) : { pages: [] },
     xpOff: state.xpOff === true,
     map: {
       imageId: state.map.imageId,
@@ -24450,7 +24994,7 @@ function hostBuildView(name, isDm) {
         const shape = Array.isArray(zone.squares) ? zone.squares.slice() : areaSquares(zone.area, center, zone.point).map(function (sq) { return sq.x + "," + sq.y; });
         return { id: zone.id, aura: zone.aura === true, name: zone.name, area: zone.area, point: zone.point, origin: zone.point, note: zone.note, ownerName: "", difficult: zone.difficult === true, hurts: !!zone.hit, hit: zone.hit ? { on: zone.hit.on.slice() } : null, spare: zone.spare || "none", canSpare: false, movable: false, cleared: Array.isArray(zone.cleared) ? zone.cleared.slice() : [], spellId: zoneSpellIdSafe(zone), squares: shape, endSquares: Array.isArray(zone.endSquares) ? zone.endSquares.slice() : undefined };
       }
-      return { id: zone.id, aura: zone.aura === true, name: zone.name, area: zone.area, point: zone.point, origin: center, note: zone.note, ownerName: owner ? owner.name : "", difficult: zone.difficult === true, hurts: !!zone.hit, hit: zone.hit ? { on: zone.hit.on.slice() } : null, spare: zone.spare || "none", alliesMode: zone.slow === true || zone.spare === "allies", canSpare: isDm || !!(owner && canControlToken(owner, name, false)), movable: zone.area.origin === "point" && !zone.follow && zoneSpellIdSafe(zone) !== "wall_of_fire", cleared: Array.isArray(zone.cleared) ? zone.cleared.slice() : [], spellId: zoneSpellIdSafe(zone), squares: Array.isArray(zone.squares) ? zone.squares.slice() : undefined, endSquares: Array.isArray(zone.endSquares) ? zone.endSquares.slice() : undefined };
+      return { id: zone.id, aura: zone.aura === true, name: zone.name, area: zone.area, point: zone.point, origin: center, note: zone.note, ownerName: owner ? owner.name : "", difficult: zone.difficult === true, hurts: !!zone.hit, hit: zone.hit ? { on: zone.hit.on.slice() } : null, spare: zone.spare || "none", alliesMode: zone.slow === true || zone.spare === "allies", canSpare: isDm || !!(owner && canControlToken(owner, name, false)), movable: zone.area.origin === "point" && !zone.follow && typeof zoneCanMove === "function" && zoneCanMove(zone), cleared: Array.isArray(zone.cleared) ? zone.cleared.slice() : [], spellId: zoneSpellIdSafe(zone), squares: Array.isArray(zone.squares) ? zone.squares.slice() : undefined, endSquares: Array.isArray(zone.endSquares) ? zone.endSquares.slice() : undefined };
     }),
     fx: hostFxForViewer(name, isDm),
     fxNow: Date.now(),   // the host's clock, so a page plays only events that just happened
@@ -24875,6 +25419,16 @@ function hostFxCommit(before, action, secret) {
       made.push({ kind: "burst", x: action.point.x, y: action.point.y, size: spell.area.size || 10, color: damage });
     }
   }
+  // A utility spell (Dancing Lights, Light, Mage Hand, Prestidigitation ...) has no steps: a small glow where it is cast, at the square aimed at or on the caster.
+  if (action && action.type === "castSpell") {
+    const spell = CONTENT.spells[contentId(action.spellId)];
+    const caster = hostFindToken(action.tokenId);
+    if (spell && caster && Array.isArray(spell.steps) && spell.steps.length === 0 && !spell.area) {
+      const color = { dancing_lights: "radiant", ph_light: "radiant", ph_mage_hand: "force", ph_message: "psychic", prestidigitation: "force", elementalism: "fire", mending: "radiant", true_strike: "radiant" }[spell.id] || "force";
+      const aimed = action.point && typeof action.point.x === "number" ? { x: action.point.x, y: action.point.y } : (Array.isArray(action.targetIds) && action.targetIds.length > 0 && hostFindToken(action.targetIds[0]) ? { x: hostFindToken(action.targetIds[0]).x, y: hostFindToken(action.targetIds[0]).y } : { x: caster.x, y: caster.y });
+      made.push({ kind: "burst", x: aimed.x, y: aimed.y, size: 5, color: color });
+    }
+  }
   const now = Date.now();
   for (const event of made) {
     event.id = hostFxNext++;
@@ -25087,7 +25641,7 @@ function hostHandleActionRaw(action, name, isDm) {
     if (!token) return "That token no longer exists.";
     if (!canControlToken(token, name, isDm)) return "You can only move your own token.";
     // In combat a player moves only on their own turn (the DM can still move anyone).
-    if (!isDm && ecoOn() && state.initiative.entries.some(function (entry) { return entry.tokenId === token.id; }) && !rulesOnItsTurn(token)) {
+    if (!isDm && ecoOn() && (typeof token.summonOf === "number" || state.initiative.entries.some(function (entry) { return entry.tokenId === token.id; })) && !rulesOnItsTurn(token)) {
       return "It is not " + token.name + "'s turn. You can move on your turn (the DM can move you if needed).";
     }
     const oldX = token.x;
@@ -25414,6 +25968,29 @@ function hostHandleActionRaw(action, name, isDm) {
     if (typeof action.mastery === "string" && typeof rulesAltMasteries === "function" && rulesAltMasteries(attacker, attack).indexOf(action.mastery) !== -1) {
       attack = Object.assign({}, attack, { mastery: action.mastery });
     }
+    // R39: a tile can be picked instead of a creature. Whoever stands there is the target; an empty square takes a thrown weapon (it lands there).
+    if ((!Array.isArray(action.targetIds) || action.targetIds.length === 0) && action.point && typeof action.point.x === "number" && typeof action.point.y === "number") {
+      const px = cleanInt(action.point.x, 0, gridCols() - 1, -1);
+      const py = cleanInt(action.point.y, 0, gridRows() - 1, -1);
+      if (px < 0 || py < 0) return "Pick a square on the map.";
+      const standing = state.tokens.filter(function (other) {
+        const t = sizeTiles(other);
+        return other.id !== attacker.id && px >= other.x && px < other.x + t && py >= other.y && py < other.y + t && canSeeToken(other, name, isDm);
+      });
+      if (standing.length > 0) action.targetIds = [standing[0].id];
+      else if (attack.id === "throw" && !action.dryRun) {
+        const feet = Math.max(Math.abs(px - attacker.x), Math.abs(py - attacker.y)) * 5;
+        const longest = typeof attack.longRangeFt === "number" && attack.longRangeFt > 0 ? attack.longRangeFt : (attack.rangeFt || 0);
+        if (longest > 0 && feet > longest) return "Too far: that square is " + feet + " feet away and the throw reaches " + longest + ".";
+        const spendProblem = typeof ecoCheck === "function" ? ecoCheck(attacker, "action", isDm) : null;
+        if (spendProblem) return spendProblem;
+        if (typeof ecoSpend === "function") ecoSpend(attacker, "action");
+        if (typeof groundThrow === "function") groundThrow(attacker, action.throwUid, { x: px, y: py });
+        addRoll(name, false, attacker.name + " throws " + attack.name.replace(/ \(thrown\)$/, ""), ["It lands on an empty square (" + px + ", " + py + "). Pick it up again from Items here."], []);
+        return null;
+      }
+      else return "There is no creature on that square.";
+    }
     if (!Array.isArray(action.targetIds) || action.targetIds.length === 0) return "Pick at least one target.";
     if (action.targetIds.length > attack.targets) {
       return attack.name + " allows " + attack.targets + (attack.targets === 1 ? " target." : " targets.");
@@ -25723,7 +26300,7 @@ function hostHandleActionRaw(action, name, isDm) {
 
       let line = target.name + ": " + roll.text + bonusText + extra.text + reactText + bardicText + " = " + toHit + "  →  ";
 
-      hostFxAdd({ kind: "attack", from: attacker.id, to: target.id, hit: outcome !== "miss", crit: outcome === "crit", ranged: attack.rangeFt > 0 || attack.range === "ranged", type: attack.damageType || "", weapon: hostFxWeapon(attack) });
+      hostFxAdd({ kind: "attack", from: attacker.id, to: target.id, hit: outcome !== "miss", crit: outcome === "crit", ranged: attack.rangeFt > 0 || attack.range === "ranged", type: attack.damageType || "", weapon: hostFxWeapon(attack), name: String(attack.name || "").slice(0, 40) });
       if (outcome === "miss") {
         line += roll.kept === 1 ? "MISS (natural 1)" : "MISS";
         if (typeof reactionAfterMiss === "function") reactionAfterMiss(target, attacker, !(attack.rangeFt > 0));
@@ -29951,6 +30528,9 @@ function cbMapPicture(image) {
   cbCache = { source: image, canvas: copy };
   return copy;
 }
+// R38: grid lines can be hidden on this device; ranges, areas and the ruler still show.
+let lastTurnTokenId = null;
+let gridOn = readSaved("ct_grid") !== "0";
 function cbSetLabel(on) {
   // The colour-blind switch in the Settings window.
   byId("cbToggle").checked = on;
@@ -30016,9 +30596,25 @@ function showStatus(message) {
   }
   const box = byId("statusMessage");
   box.textContent = message;
+  if (getComputedStyle(box).bottom === "auto") box.style.top = popupTopOffset() + "px";   // the small-screen layout puts it at the top
   show(box, true);
+  rollLogNote(message);
   clearTimeout(statusTimer);
   statusTimer = setTimeout(function () { show(box, false); }, 5000);
+}
+
+// Pop-up messages are also written in this screen's roll log, so one that closed too soon can still be read.
+const rollLogNotes = [];   // { text, after: id of the newest roll when it appeared }
+function rollLogNote(message) {
+  if (typeof message !== "string" || message === "") return;
+  const last = rollLogNotes[rollLogNotes.length - 1];
+  if (last && last.text === message && last.after === lastRollIdForNotes()) return;
+  rollLogNotes.push({ text: message, after: lastRollIdForNotes() });
+  while (rollLogNotes.length > 60) rollLogNotes.shift();
+  if (typeof view !== "undefined" && view && view.rolls && typeof renderRollLog === "function") renderRollLog();
+}
+function lastRollIdForNotes() {
+  return typeof view !== "undefined" && view && view.rolls && view.rolls.length > 0 ? view.rolls[view.rolls.length - 1].id : 0;
 }
 
 function setConnectionLabel(text, mood) {
@@ -30682,9 +31278,61 @@ function send(action) {
 // When the table changes
 // ---------------------------------------------------------------
 
+// R22 (optional, Settings > Animate token walking): a token that moved is drawn walking along its path instead of jumping.
+// The player who planned a route walks that route; everyone else sees a straight walk from the old square to the new one.
+let walkOn = readSaved("ct_walk") === "1";
+let walkLast = {};     // token id -> { x, y } as of the previous view
+const walkHints = {};  // token id -> { from: {x, y}, stops: [[x, y], ...] } for a route this screen confirmed
+const walkAnim = {};   // token id -> { path: [{x, y}], start: ms, duration: ms }
+function walkTrack() {
+  const now = performance.now();
+  const next = {};
+  for (const token of view.tokens) {
+    next[token.id] = { x: token.x, y: token.y };
+    const before = walkLast[token.id];
+    if (!walkOn || document.body.classList.contains("reduceMotion") || !before || (before.x === token.x && before.y === token.y)) { delete walkHints[token.id]; continue; }
+    const hint = walkHints[token.id];
+    delete walkHints[token.id];
+    if (!hint && token.mine) continue;   // dragged by hand on this screen: it is already where it was dropped
+    let path = [{ x: before.x, y: before.y }];
+    if (hint && hint.stops.length > 0 && hint.stops[hint.stops.length - 1][0] === token.x && hint.stops[hint.stops.length - 1][1] === token.y) {
+      for (const stop of hint.stops) path.push({ x: stop[0], y: stop[1] });
+    } else path.push({ x: token.x, y: token.y });
+    let squares = 0;
+    for (let i = 1; i < path.length; i++) squares += Math.max(Math.abs(path[i].x - path[i - 1].x), Math.abs(path[i].y - path[i - 1].y));
+    if (squares > 0 && squares <= 80) walkAnim[token.id] = { path: path, start: now, duration: Math.min(3000, 120 * squares + 80) };
+  }
+  walkLast = next;
+}
+// Where the token is drawn right now: along its walk, or null when it is not walking.
+function walkPosition(id) {
+  const anim = walkAnim[id];
+  if (!anim) return null;
+  const t = (performance.now() - anim.start) / anim.duration;
+  if (t >= 1) { delete walkAnim[id]; return null; }
+  const lengths = [];
+  let total = 0;
+  for (let i = 1; i < anim.path.length; i++) { const len = Math.max(Math.abs(anim.path[i].x - anim.path[i - 1].x), Math.abs(anim.path[i].y - anim.path[i - 1].y)); lengths.push(len); total += len; }
+  let at = t * total;
+  for (let i = 0; i < lengths.length; i++) {
+    if (at <= lengths[i] || i === lengths.length - 1) {
+      const f = lengths[i] === 0 ? 1 : Math.min(1, at / lengths[i]);
+      return { x: anim.path[i].x + (anim.path[i + 1].x - anim.path[i].x) * f, y: anim.path[i].y + (anim.path[i + 1].y - anim.path[i].y) * f };
+    }
+    at -= lengths[i];
+  }
+  return null;
+}
+let walkFrame = 0;
+function walkKeepDrawing() {
+  if (walkFrame || Object.keys(walkAnim).length === 0) return;
+  walkFrame = requestAnimationFrame(function () { walkFrame = 0; draw(); });
+}
+
 function onNewView() {
   const isDm = view.you.isDm;
   moveRevert = null;   // the new view has every token where the DM's browser put it
+  walkTrack();
   renderGround();
 
   byId("whoLabel").textContent = view.you.name + (isDm ? " (DM)" : "");
@@ -30709,6 +31357,14 @@ function onNewView() {
     if (document.activeElement !== byId("cellSize")) byId("cellSize").value = view.map.cellSize;
   }
 
+  // R28: when the turn passes to a token this person controls (a character, a summon, a controlled creature), the side bar switches to it.
+  if (view.initiative.currentTokenId !== lastTurnTokenId) {
+    lastTurnTokenId = view.initiative.currentTokenId;
+    if (lastTurnTokenId !== null && lastTurnTokenId !== undefined) {
+      const turnToken = findToken(lastTurnTokenId);
+      if (turnToken !== null && turnToken.mine) selectedId = turnToken.id;
+    }
+  }
   if (selectedId !== null) {
     const selectedToken = findToken(selectedId);
     if (selectedToken === null || (!selectedToken.mine && !isDm)) selectedId = null;
@@ -30735,6 +31391,7 @@ function onNewView() {
   renderCharacter();
   renderAttacks();
   renderParty();
+  if (typeof wikiRender === "function") { wikiRender(); wikiPopRender(); }
   renderPlayers();
   renderPick();
   renderRollLog();
@@ -30961,6 +31618,17 @@ byId("zoomOut").addEventListener("click", function () { zoomAtCenter(0.8); });
 document.body.classList.toggle("cb", cbMode);
 cbSetLabel(cbMode);
 byId("cbToggle").addEventListener("click", function () { setColorblind(!cbMode); });
+byId("gridToggle").checked = gridOn;
+byId("walkToggle").checked = walkOn;
+byId("walkToggle").addEventListener("click", function () {
+  walkOn = byId("walkToggle").checked;
+  try { localStorage.setItem("ct_walk", walkOn ? "1" : "0"); } catch (err) { /* private browsing */ }
+});
+byId("gridToggle").addEventListener("click", function () {
+  gridOn = byId("gridToggle").checked;
+  try { localStorage.setItem("ct_grid", gridOn ? "1" : "0"); } catch (err) { /* private browsing */ }
+  draw();
+});
 let savedTheme = "gilded";
 try { savedTheme = localStorage.getItem("ct_theme") || "gilded"; } catch (err) { /* private browsing */ }
 applyTheme(savedTheme);
@@ -31050,6 +31718,7 @@ function diceEndingWrite(context, out, when, ending) {
 }
 
 function playDiceSound(roll) {
+  if (roll.dice.length === 0) return;   // time passing and other notes with no dice make no dice sound
   if (!diceSoundOn() || diceAudio === null || diceAudio.state !== "running" || !(diceRecording instanceof AudioBuffer)) return;
   const d20s = roll.dice.filter(function (die) { return die.sides === 20; });
   const ending = d20s.some(function (die) { return die.value === 20; }) ? "crit" : (d20s.some(function (die) { return die.value === 1; }) ? "fumble" : "");
@@ -31163,6 +31832,14 @@ function draw() {
   const rows = Math.ceil(map.height / cell);
   const zoom = camera.zoom;
 
+  // The list of areas on the map (Remove, Move ...) is fixed in the map's own space, just below its bottom edge: it moves and zooms with the
+  // map, so it is only seen when the DM scrolls down to it and never floats over the play area.
+  const zoneBar = byId("zoneBar");
+  if (zoneBar && !zoneBar.classList.contains("hiddenRow")) {
+    zoneBar.style.left = (camera.x + cols * cell * zoom / 2) + "px";
+    zoneBar.style.top = (camera.y + rows * cell * zoom + 10) + "px";
+  }
+
   // Clear the whole screen area, then switch to map coordinates.
   const enhanced = typeof gfxActive === "function" && gfxActive();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -31197,6 +31874,7 @@ function draw() {
   ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
   ctx.lineWidth = 1 / zoom;
   ctx.beginPath();
+  if (gridOn) {
   for (let x = 0; x <= cols; x++) {
     ctx.moveTo(x * cell, 0);
     ctx.lineTo(x * cell, map.height);
@@ -31204,6 +31882,7 @@ function draw() {
   for (let y = 0; y <= rows; y++) {
     ctx.moveTo(0, y * cell);
     ctx.lineTo(map.width, y * cell);
+  }
   }
   ctx.stroke();
 
@@ -31240,6 +31919,7 @@ function draw() {
   }
   drawFogOutline();
   drawRuler(cell);
+  walkKeepDrawing();
 }
 
 // Difficult Terrain: diagonal brown stripes on each square the DM painted, and on the squares of spells that make it.
@@ -31449,6 +32129,9 @@ function drawToken(token, tile) {
   if (drag && drag.kind === "token" && drag.id === token.id) {
     x = drag.x;
     y = drag.y;
+  } else {
+    const walking = walkPosition(token.id);
+    if (walking) { x = walking.x; y = walking.y; }
   }
   const px = x * tile;
   const py = y * tile;
@@ -31836,7 +32519,7 @@ function renderGround() {
     row.appendChild(head);
     const text = document.createElement("div");
     text.className = "groundText muted small";
-    text.textContent = item.text || "No description.";
+    text.textContent = (item.text || "No description.") + (view.you.isDm && item.value > 0 ? "  \u00B7  " + item.value + " GP (DM only)" : "");
     row.appendChild(text);
     list.appendChild(row);
   }
@@ -31847,24 +32530,46 @@ function renderGround() {
   if (view.you.isDm && dmSquare) fillGroundAddItems();
 }
 
+// R3: the item list can be searched; R4: "Custom item" adds a quest item with a name and a note.
+let groundAddAll = null;
 function fillGroundAddItems() {
   const select = byId("groundAddItem");
+  if (groundAddAll === null) {
+    const items = Object.keys((CONTENT.equipment && CONTENT.equipment.items) || {}).map(function (id) { return CONTENT.equipment.items[id]; });
+    items.sort(function (a, b) { return a.name.localeCompare(b.name); });
+    groundAddAll = items;
+  }
   if (select.options.length > 0) return;
-  const items = Object.keys((CONTENT.equipment && CONTENT.equipment.items) || {}).map(function (id) { return CONTENT.equipment.items[id]; });
-  items.sort(function (a, b) { return a.name.localeCompare(b.name); });
-  for (const item of items) {
+  fillGroundAddOptions();
+}
+function fillGroundAddOptions() {
+  const select = byId("groundAddItem");
+  const wanted = byId("groundAddSearch").value.trim().toLowerCase();
+  const keep = select.value;
+  select.textContent = "";
+  const custom = document.createElement("option");
+  custom.value = "__custom";
+  custom.textContent = "Custom item (quest item)...";
+  select.appendChild(custom);
+  for (const item of groundAddAll || []) {
+    const label = item.name + (item.cat === "magic" ? " (magic)" : "");
+    if (wanted !== "" && label.toLowerCase().indexOf(wanted) === -1) continue;
     const option = document.createElement("option");
     option.value = item.id;
-    option.textContent = item.name + (item.cat === "magic" ? " (magic)" : "");
+    option.textContent = label;
     select.appendChild(option);
   }
-  if (items.length === 0) {
-    const none = document.createElement("option");
-    none.value = "";
-    none.textContent = "Load the equipment pack first";
-    select.appendChild(none);
-  }
+  if (wanted !== "" && select.options.length > 1) select.selectedIndex = 1;
+  else if (keep !== "" && wanted === "") select.value = keep;
+  groundShowCustomFields();
 }
+function groundShowCustomFields() {
+  const isCustom = byId("groundAddItem").value === "__custom";
+  show(byId("groundCustomName"), isCustom);
+  show(byId("groundCustomNote"), isCustom);
+}
+byId("groundAddSearch").addEventListener("input", fillGroundAddOptions);
+byId("groundAddItem").addEventListener("change", groundShowCustomFields);
 
 byId("groundButton").addEventListener("click", function () {
   send({ type: "groundOpen", tokenId: Number(byId("groundButton").dataset.tokenId) });
@@ -31889,6 +32594,14 @@ byId("groundAdd").addEventListener("click", function () {
   const open = view.ground ? view.ground.open : null;
   if (!open || open.squares.length === 0 || byId("groundAddItem").value === "") return;
   const parts = open.squares[0].split(",");
+  if (byId("groundAddItem").value === "__custom") {
+    const customName = byId("groundCustomNameInput").value.trim();
+    if (customName === "") return showStatus("Give the custom item a name first.");
+    send({ type: "groundPlace", x: Number(parts[0]), y: Number(parts[1]), custom: true, customName: customName, customNote: byId("groundCustomNoteInput").value.trim(), count: Number(byId("groundAddCount").value) || 1 });
+    byId("groundCustomNameInput").value = "";
+    byId("groundCustomNoteInput").value = "";
+    return;
+  }
   send({ type: "groundPlace", x: Number(parts[0]), y: Number(parts[1]), itemId: byId("groundAddItem").value, count: Number(byId("groundAddCount").value) || 1 });
 });
 
@@ -32027,6 +32740,12 @@ canvas.addEventListener("pointerdown", function (event) {
   }
 
   // Moving a marked area: the next tap on a tile puts it there.
+  if (throwItemPick !== null) {
+    const pending = throwItemPick;
+    throwItemPick = null;
+    if (cell.inside) send({ type: "throwItem", tokenId: pending.tokenId, uid: pending.uid, damageType: pending.damageType, x: cell.x, y: cell.y });
+    return;
+  }
   if (zoneMovingId !== null) {
     if (cell.inside) send({ type: "zoneMove", id: zoneMovingId, x: cell.x, y: cell.y });
     zoneMovingId = null;
@@ -32269,7 +32988,15 @@ function finishDrag(cancelled) {
     if (pick !== null) {
       if (pick.area) pickAreaTap(pickTapCell, finished.tapTokenId);
       else if (pick.point) pickPointTap(pickTapCell);
-      else if (finished.tapTokenId !== null) togglePicked(finished.tapTokenId);
+      else if (finished.tapTokenId !== null) { pick.tile = false; togglePicked(finished.tapTokenId); }
+      else if (pickTapCell !== null && pick.kind === "attack" && (pick.attackKind === "spell" || pick.attackKind === "attack")) {
+        // R14 / R39: a spell or a thrown attack can be aimed at any square, with no creature on it.
+        pick.origin = { x: pickTapCell.x, y: pickTapCell.y };
+        pick.tile = true;
+        pickedIds.length = 0;
+        renderPick();
+        draw();
+      }
       return;
     }
     if (finished.clearOnTap) {
@@ -32345,6 +33072,12 @@ function endPick() {
 // ---- Area spells: a tap places the template, the tokens inside are chosen for you ----
 let pickTapCell = null;
 let zoneMovingId = null;
+// R17 / R39: throwing a potion: the next tap on the map picks the square.
+let throwItemPick = null;
+function startThrowItem(tokenId, uid, damageType) {
+  throwItemPick = { tokenId: tokenId, uid: uid, damageType: damageType };
+  showStatus("Tap a square (within 30 feet) to throw it at.");
+}
 
 function pickAreaCaster() {
   return pick !== null && pick.kind === "attack" ? findToken(pick.attackerId) : null;
@@ -32708,6 +33441,8 @@ function renderPick() {
   } else if (pick.kind === "attack") {
     const noun = pick.repeat ? "hits" : "targets";
     byId("pickText").textContent = pick.label + ": tap up to " + pick.maxTargets + " " + noun + " (" + count + " of " + pick.maxTargets + " chosen)";
+    if (pick.tile && pick.origin) byId("pickText").textContent = pick.label + ": aimed at square " + (pick.origin.x + 1) + ", " + (pick.origin.y + 1) + ". Tap a token instead, or another square.";
+    else if (pickedIds.length === 0 && (pick.attackKind === "spell" || pick.attackKind === "attack")) byId("pickText").textContent += ". Or tap any square to aim there";
     byId("pickGo").textContent = pick.attackKind === "salvage" ? "Ask the DM" : (pick.attackKind === "effect" || pick.attackKind === "classUse" ? "Apply" : (pick.attackKind === "spell" ? "Cast" : "Roll"));
     show(byId("pickAll"), false);
   } else if (pick.kind === "join") {
@@ -32857,9 +33592,9 @@ byId("pickClear").addEventListener("click", function () {
 byId("pickGo").addEventListener("click", function () {
   if (pick === null) return;
   if (pick.point && !pick.origin) return showStatus("Tap the tile where it appears first.");
-  if (pickedIds.length === 0 && !pick.point && !(pick.area && pick.origin !== null)) return showStatus(pick.area ? "Tap a tile to place the area first." : "Tap at least one token on the map first.");
+  if (pickedIds.length === 0 && !pick.point && !pick.tile && !pick.utility && !(pick.area && pick.origin !== null)) return showStatus(pick.area ? "Tap a tile to place the area first." : "Tap at least one token on the map first.");
   if (pick.kind === "attack" && pick.attackKind === "classUse") {
-    send(Object.assign({}, pick.classUse, { targetIds: pickedIds.slice() }));
+    send(Object.assign({}, pick.classUse, { targetIds: pickedIds.slice() }, pick.area && pick.origin ? { point: { x: pick.origin.x, y: pick.origin.y } } : {}));
   } else if (pick.kind === "attack" && pick.attackKind === "salvage") {
     send({ type: "salvageRequest", tokenId: pick.attackerId, targetId: pickedIds[0] });
   } else if (pick.kind === "attack" && pick.attackKind === "spell") {
@@ -32868,7 +33603,7 @@ byId("pickGo").addEventListener("click", function () {
       slotLevel: pick.spell.slotLevel, targetIds: pickedIds.slice(), mode: byId("pickMode").value,
       secret: view.you.isDm && byId("secretRoll").checked
     };
-    if ((pick.area || pick.point) && pick.origin) message.point = { x: pick.origin.x, y: pick.origin.y };
+    if ((pick.area || pick.point || pick.tile) && pick.origin) message.point = { x: pick.origin.x, y: pick.origin.y };
     for (const getter of pickCastGetters) Object.assign(message, getter());
     send(message);
   } else if (pick.kind === "attack") {
@@ -32877,6 +33612,7 @@ byId("pickGo").addEventListener("click", function () {
       attackerId: pick.attackerId,
       attackId: pick.attackId,
       throwUid: pick.throwUid,
+      point: pick.tile && pick.origin ? { x: pick.origin.x, y: pick.origin.y } : undefined,
       picks: pick.picks,
       branch: pick.branch,
       extra: pick.extra,
@@ -33251,8 +33987,27 @@ function renderAttacks() {
 
   const list = byId("attackList");
   list.textContent = "";
+  // R12: while concentrating, the spell is shown at the top of the attacks with a way to end it. Its own attack or move
+  // (Shadow Blade's sword, a movable zone) is listed below like any other attack.
+  if (acting.character && acting.character.concentration) {
+    const concRow = document.createElement("div");
+    concRow.className = "attackRow";
+    const concInfo = document.createElement("div");
+    concInfo.className = "attackInfo";
+    concInfo.textContent = "Concentrating on: " + acting.character.concentration.name;
+    concRow.appendChild(concInfo);
+    if (acting.mine) {
+      const concEnd = document.createElement("button");
+      concEnd.type = "button";
+      concEnd.textContent = "End";
+      concEnd.addEventListener("click", function () { send({ type: "endConcentration", tokenId: acting.id }); });
+      concRow.appendChild(concEnd);
+    }
+    list.appendChild(concRow);
+  }
   const spellAttacks = acting.character && Array.isArray(acting.character.spellAttacks) ? acting.character.spellAttacks : [];
   const supportCount = (acting.character && Array.isArray(acting.character.spellSupport) ? acting.character.spellSupport.length : 0)
+    + (acting.character && Array.isArray(acting.character.spellUtility) ? acting.character.spellUtility.length : 0)
     + (acting.character && Array.isArray(acting.character.classUses) ? acting.character.classUses.filter(function (use) { return !use.riderOnly; }).length : 0);
   if (acting.attacks.length === 0 && spellAttacks.length === 0 && supportCount === 0) {
     const empty = document.createElement("div");
@@ -33422,12 +34177,24 @@ function renderAttacks() {
 
 // Attack-roll and saving-throw spells the character knows. Cast with the same rules as the Spells tab;
 // the targets are chosen by tapping tokens on the map.
+// R37: the attack spells, the healing and buff group and the utility group are separate dropdowns that fold open and shut. A folded group stays folded.
+const attackGroupClosed = new Set();
+function attackGroup(list, title) {
+  const group = document.createElement("details");
+  group.className = "attackGroup";
+  group.open = !attackGroupClosed.has(title);
+  const summary = document.createElement("summary");
+  summary.className = "muted small attackGroupHead";
+  summary.textContent = title;
+  group.appendChild(summary);
+  group.addEventListener("toggle", function () { if (group.open) attackGroupClosed.delete(title); else attackGroupClosed.add(title); });
+  list.appendChild(group);
+  return group;
+}
+
 function renderSpellAttacks(list, acting, spellAttacks) {
   if (spellAttacks.length === 0) return;
-  const head = document.createElement("div");
-  head.className = "muted small attackGroupHead";
-  head.textContent = "Attack spells";
-  list.appendChild(head);
+  list = attackGroup(list, "Attack spells");
   for (const spell of spellAttacks) {
     const row = document.createElement("div");
     row.className = "attackRow";
@@ -33499,11 +34266,10 @@ function renderSupportList(list, acting) {
   if (!character) return;
   const uses = Array.isArray(character.classUses) ? character.classUses.filter(function (use) { return !use.riderOnly; }) : [];
   const spells = Array.isArray(character.spellSupport) ? character.spellSupport : [];
-  if (uses.length === 0 && spells.length === 0) return;
-  const head = document.createElement("div");
-  head.className = "muted small attackGroupHead";
-  head.textContent = "Healing, buffs and other abilities";
-  list.appendChild(head);
+  const utility = Array.isArray(character.spellUtility) ? character.spellUtility : [];
+  if (uses.length === 0 && spells.length === 0 && utility.length === 0) return;
+  const outerList = list;
+  if (uses.length > 0 || spells.length > 0) list = attackGroup(outerList, "Healing, buffs and other abilities");
 
   for (const use of uses) {
     const row = document.createElement("div");
@@ -33542,7 +34308,7 @@ function renderSupportList(list, acting) {
       if (use.needs === "targets" || use.needs === "allies") {
         startPick({
           kind: "attack", attackerId: acting.id, attackId: use.id, label: acting.name + ", " + use.name, attackKind: "classUse",
-          maxTargets: Math.max(1, use.maxTargets), repeat: false, classUse: base
+          maxTargets: use.area ? 40 : Math.max(1, use.maxTargets), repeat: false, classUse: base, area: use.area || undefined
         });
         return;
       }
@@ -33552,6 +34318,11 @@ function renderSupportList(list, acting) {
     list.appendChild(row);
   }
 
+  renderSupportSpellRows(list, acting, spells);
+  if (utility.length > 0) renderSupportSpellRows(attackGroup(outerList, "Utility spells"), acting, utility);
+}
+
+function renderSupportSpellRows(list, acting, spells) {
   for (const spell of spells) {
     const row = document.createElement("div");
     row.className = "attackRow supportRow";
@@ -33595,7 +34366,7 @@ function renderSupportList(list, acting) {
       }
       startPick({
         kind: "attack", attackerId: acting.id, attackId: spell.spellId, label: acting.name + ", " + spell.name, attackKind: "spell",
-        maxTargets: spell.maxTargets, repeat: false, area: spell.area, rangeFeet: spell.rangeFeet, point: false,
+        maxTargets: spell.maxTargets, repeat: false, area: spell.area, rangeFeet: spell.rangeFeet, point: false, utility: spell.utility === true,
         spell: { classId: spell.classId, spellId: spell.spellId, slotLevel: slotLevel }
       });
     });
@@ -34011,6 +34782,27 @@ byId("effectAdd").addEventListener("click", function () {
 function renderEffects(token) {
   const list = byId("effectList");
   list.textContent = "";
+  // R12: the spell the creature is concentrating on shows with the other statuses.
+  if (token.character && token.character.concentration) {
+    const conc = document.createElement("div");
+    conc.className = "effectChip boon";
+    const concText = document.createElement("div");
+    concText.className = "effectText";
+    const concName = document.createElement("span");
+    concName.className = "effectName";
+    concName.textContent = "Concentrating on: " + token.character.concentration.name;
+    concText.appendChild(concName);
+    conc.appendChild(concText);
+    if (token.mine) {
+      const endConc = document.createElement("button");
+      endConc.type = "button";
+      endConc.textContent = "End";
+      endConc.setAttribute("aria-label", "End concentration on " + token.character.concentration.name);
+      endConc.addEventListener("click", function () { send({ type: "endConcentration", tokenId: token.id }); });
+      conc.appendChild(endConc);
+    }
+    list.appendChild(conc);
+  }
   for (const effect of token.effects) {
     const found = Array.isArray(token.statuses) ? token.statuses.find(function (status) { return status.id === effect.id; }) : null;
     const tone = found ? found.tone : "neutral";
@@ -34581,7 +35373,17 @@ function renderParty() {
     return;
   }
 
-  for (const member of view.party) {
+  // R36: player characters and creature tokens taken off the board are listed in separate sections.
+  const partyOrdered = view.party.filter(function (m) { return !m.creature; }).concat(view.party.filter(function (m) { return m.creature; }));
+  let partyHeading = "";
+  for (const member of partyOrdered) {
+    const heading = member.creature ? "Creature tokens" : "Character tokens";
+    if (heading !== partyHeading) {
+      partyHeading = heading;
+      const title = document.createElement("h3");
+      title.textContent = heading;
+      list.appendChild(title);
+    }
     const row = document.createElement("div");
     row.className = "partyRow";
 
@@ -34657,15 +35459,21 @@ byId("customRoll").addEventListener("click", function () {
 function renderRollLog() {
   const log = byId("rollLog");
   log.textContent = "";
-  if (view.rolls.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "muted";
-    empty.textContent = "No rolls yet.";
-    log.appendChild(empty);
-    return;
-  }
+  const notesAfter = function (rollId) {
+    for (let n = rollLogNotes.length - 1; n >= 0; n--) {
+      if (rollLogNotes[n].after !== rollId) continue;
+      const note = document.createElement("div");
+      note.className = "rollEntry rollNote";
+      note.textContent = "Pop-up: " + rollLogNotes[n].text;
+      log.appendChild(note);
+    }
+  };
+  const knownIds = view.rolls.map(function (item) { return item.id; });
+  // A note sits above the roll that came just before it (newest first); one whose roll has scrolled off the list goes at the end.
+  for (const note of rollLogNotes) if (note.after !== 0 && knownIds.indexOf(note.after) === -1) { note.after = 0; }
   for (let i = view.rolls.length - 1; i >= 0; i--) {
     const roll = view.rolls[i];
+    notesAfter(roll.id);
     const entry = document.createElement("div");
     entry.className = "rollEntry";
 
@@ -34682,6 +35490,8 @@ function renderRollLog() {
     for (const line of roll.lines) {
       const row = document.createElement("div");
       row.textContent = line;
+      const good = rollLineClass(line);
+      if (good !== "") row.className = good;
       entry.appendChild(row);
     }
 
@@ -34702,6 +35512,20 @@ function renderRollLog() {
     }
     log.appendChild(entry);
   }
+  notesAfter(0);
+  if (log.childElementCount === 0) {
+    const empty = document.createElement("div");
+    empty.className = "muted";
+    empty.textContent = "No rolls yet.";
+    log.appendChild(empty);
+  }
+}
+
+// Green for a roll that succeeded (a hit, a save made), red for one that failed (a miss, a failed save); "" when the line has no outcome.
+function rollLineClass(line) {
+  if (/CRITICAL HIT|→\s+HIT|\bSAVES\b|\bSUCCEEDS\b|\bSUCCESS\b/.test(line)) return "rollLineGood";
+  if (/\bMISS(ES)?\b|\bFAILS?\b|\bFAILURE\b/.test(line)) return "rollLineBad";
+  return "";
 }
 
 // The outcome a roll's lines show, for its tag in the log (null when it has none).
@@ -34729,8 +35553,20 @@ function checkForNewRoll() {
   lastRollId = newestId;
 }
 
+// Where a pop-up at the top of the map may start: just under the resource bar (spell slots, pools), so it never covers it.
+function popupTopOffset() {
+  const bar = byId("resourceBar");
+  if (!bar || bar.classList.contains("hiddenRow") || bar.offsetHeight === 0) return 14;
+  return bar.offsetTop + bar.offsetHeight + 8;
+}
+
+// Clicking a pop-up closes it at once.
+byId("diceWindow").addEventListener("click", function () { clearTimeout(diceTimer); show(byId("diceWindow"), false); });
+byId("statusMessage").addEventListener("click", function () { clearTimeout(statusTimer); show(byId("statusMessage"), false); });
+
 function showDiceWindow(roll) {
   const box = byId("diceWindow");
+  box.style.top = popupTopOffset() + "px";
   const row = byId("diceRow");
   const lines = byId("diceLines");
   byId("diceTitle").textContent = roll.who + ": " + roll.title;
@@ -34778,6 +35614,8 @@ function showDiceWindow(roll) {
     for (const line of roll.lines) {
       const text = document.createElement("div");
       text.textContent = line;
+      const good = rollLineClass(line);
+      if (good !== "") text.className = good;
       lines.appendChild(text);
     }
     diceTimer = setTimeout(function () { show(box, false); }, 6000);
@@ -35183,23 +36021,28 @@ function renderEconomy(token) {
     free.addEventListener("click", function () { send({ type: "ecoToggle", tokenId: token.id, kind: "free", value: !eco.free }); });
     bar.appendChild(free);
   }
-  for (const kind of ["action", "bonus", "reaction"]) {
-    const chip = document.createElement("button");
-    chip.type = "button";
-    chip.className = "ecoChip" + (eco[kind] ? " spent" : "");
-    chip.textContent = { action: "Action", bonus: "Bonus", reaction: "Reaction" }[kind] + (eco[kind] ? ": used" : ": ready");
-    chip.title = "Status light. Attacks and spells tick this for you; click only to fix it by hand (now " + (eco[kind] ? "used" : "ready") + ")";
-    chip.addEventListener("click", function () { send({ type: "ecoToggle", tokenId: token.id, kind: kind }); });
-    bar.appendChild(chip);
-  }
+  // Action, Bonus Action and Reaction are shown as lit symbols in the resource bar at the top of the map.
   // Movement this turn, and the Dash buttons (the Action, or a Bonus Action from a feature such as Cunning Action).
   if (typeof eco.speed === "number") {
     const limit = eco.speed * (1 + eco.dash);
     const move = document.createElement("span");
     move.className = "ecoMove" + (eco.moved >= limit ? " spent" : "");
-    move.textContent = eco.turn ? "Move " + eco.moved + "/" + limit + " ft" : "Speed " + eco.speed + " ft";
+    // Flying with its own speed costs less than a foot of the pool per foot, so show the feet really moved (Fly 60: 60, not 30).
+    const flown = (eco.modes || []).find(function (item) { return item.id === eco.mode; });
+    const scale = flown && flown.cost > 0 && flown.cost !== 1 ? 1 / flown.cost : 1;
+    move.textContent = eco.turn ? "Move " + Math.round(eco.moved * scale) + "/" + Math.round(limit * scale) + " ft" : "Speed " + Math.round(eco.speed * scale) + " ft";
     move.title = "Each square is 5 feet, diagonals too. Crawling costs double; standing up costs half your Speed.";
     bar.appendChild(move);
+    // Prone: a visible way up, so nobody has to look for it in the Movement drawer.
+    if (eco.prone && (token.hp === null || token.hp > 0)) {
+      const stand = document.createElement("button");
+      stand.type = "button";
+      stand.className = "primary";
+      stand.textContent = "Stand up (half Speed)";
+      stand.title = "You are Prone. Standing costs half your Speed this turn; until then you crawl (every foot costs double).";
+      stand.addEventListener("click", function () { send({ type: "standUp", tokenId: token.id }); });
+      bar.appendChild(stand);
+    }
     // One Movement button opens Dash, Jump and Disengage, so the turn bar stays short.
     const moveToggle = document.createElement("button");
     moveToggle.type = "button";
@@ -37222,6 +38065,70 @@ function gfxMissileArt(event, ranged) {
   return gfxArt("arrow");
 }
 
+// R27: melee hits get a mark that fits the attack: claw rakes, a bite, a slash arc, a stab or a thud, from the attack's name and damage type.
+function gfxMeleeMarks(event, to, angle, tile) {
+  const name = String(event.name || "").toLowerCase();
+  let style = "";
+  if (/claw|rake|rend|talon|swipe|scratch|paw|lash/.test(name)) style = "claw";
+  else if (/bite|fang|snap|gore|tusk|nip/.test(name)) style = "bite";
+  else if (event.type === "slashing") style = "slash";
+  else if (event.type === "piercing") style = "stab";
+  else if (event.type === "bludgeoning") style = "thud";
+  if (style === "") return null;
+  const g = new PIXI.Graphics();
+  const r = to.span * 0.5;
+  const color = event.crit ? 0xffd34d : 0xffffff;
+  const w = Math.max(2, tile * 0.07);
+  const px = -Math.sin(angle);
+  const py = Math.cos(angle);
+  const cx = to.x;
+  const cy = to.y;
+  if (style === "claw") {
+    // three parallel rakes across the target
+    for (let i = -1; i <= 1; i++) {
+      const ox = px * i * r * 0.32;
+      const oy = py * i * r * 0.32;
+      const dx = Math.cos(angle + 0.9) * r;
+      const dy = Math.sin(angle + 0.9) * r;
+      g.moveTo(cx + ox - dx, cy + oy - dy).lineTo(cx + ox + dx, cy + oy + dy).stroke({ width: w, color: 0xff6b5a, alpha: 0.95, cap: "round" });
+      g.moveTo(cx + ox - dx * 0.8, cy + oy - dy * 0.8).lineTo(cx + ox + dx * 0.8, cy + oy + dy * 0.8).stroke({ width: w * 0.4, color: color, alpha: 0.9, cap: "round" });
+    }
+  } else if (style === "bite") {
+    // two rows of fangs closing on the target
+    for (const side of [-1, 1]) {
+      for (let i = -2; i <= 2; i++) {
+        const bx = cx + px * i * r * 0.28 + Math.cos(angle) * side * r * 0.35;
+        const by = cy + py * i * r * 0.28 + Math.sin(angle) * side * r * 0.35;
+        const tx = bx - Math.cos(angle) * side * r * 0.3;
+        const ty = by - Math.sin(angle) * side * r * 0.3;
+        g.moveTo(bx + px * r * 0.1, by + py * r * 0.1).lineTo(tx, ty).lineTo(bx - px * r * 0.1, by - py * r * 0.1).closePath().fill({ color: color, alpha: 0.95 });
+      }
+    }
+  } else if (style === "slash") {
+    // one curved cut through the target
+    const sx = cx - Math.cos(angle + 0.7) * r * 1.1;
+    const sy = cy - Math.sin(angle + 0.7) * r * 1.1;
+    const ex = cx + Math.cos(angle + 0.7) * r * 1.1;
+    const ey = cy + Math.sin(angle + 0.7) * r * 1.1;
+    g.moveTo(sx, sy).quadraticCurveTo(cx + px * r * 0.6, cy + py * r * 0.6, ex, ey).stroke({ width: w * 1.6, color: color, alpha: 0.95, cap: "round" });
+    g.moveTo(sx, sy).quadraticCurveTo(cx + px * r * 0.6, cy + py * r * 0.6, ex, ey).stroke({ width: w * 0.5, color: 0xffb3a8, alpha: 0.9, cap: "round" });
+  } else if (style === "stab") {
+    // a thrust in from the attacker's side with a small burst at the point
+    const tx = cx + Math.cos(angle) * r * 0.1;
+    const ty = cy + Math.sin(angle) * r * 0.1;
+    g.moveTo(cx - Math.cos(angle) * r * 1.2, cy - Math.sin(angle) * r * 1.2).lineTo(tx, ty).stroke({ width: w * 1.2, color: color, alpha: 0.95, cap: "round" });
+    for (let i = 0; i < 6; i++) {
+      const a = (Math.PI * 2 * i) / 6;
+      g.moveTo(tx + Math.cos(a) * r * 0.15, ty + Math.sin(a) * r * 0.15).lineTo(tx + Math.cos(a) * r * 0.5, ty + Math.sin(a) * r * 0.5).stroke({ width: w * 0.6, color: 0xffb3a8, alpha: 0.9, cap: "round" });
+    }
+  } else if (style === "thud") {
+    // a shockwave ring where the blow lands
+    g.circle(cx, cy, r * 0.45).stroke({ width: w * 1.4, color: color, alpha: 0.9 });
+    g.circle(cx, cy, r * 0.8).stroke({ width: w * 0.8, color: 0xd9c9a8, alpha: 0.7 });
+  }
+  return g;
+}
+
 function gfxEffect(event, tile, now, stack) {
   const node = new PIXI.Container();
   if (event.kind === "attack") {
@@ -37256,6 +38163,7 @@ function gfxEffect(event, tile, now, stack) {
         node.addChild(impact);
       }
       if (event.crit && gfxArt("hit_crit")) { crit = gfxArtSprite(gfxArt("hit_crit"), to.x, to.y, to.span * 1.9, 0); node.addChildAt(crit, 1); }
+      if (!ranged && !event.spell) { const marks = gfxMeleeMarks(event, to, angle, tile); if (marks) node.addChild(marks); }
     } else {
       // A whoosh of air past the target, on the far side from the attacker, and the word.
       if (gfxArt("miss")) {
@@ -37490,6 +38398,13 @@ function routeModeInfo(token) {
   return found || { id: "walk", name: "Walk", cost: 1 };
 }
 
+// The distance the ruler shows. Movement is counted in feet of the walking pool, so Fly 60 with Speed 30 uses half a pool foot per foot
+// flown; the ruler shows the feet really flown (60 at the most), not the pool feet (30).
+function routeShown(token, poolFeet) {
+  const mode = routeModeInfo(token);
+  return mode.cost > 0 && mode.cost !== 1 ? Math.round(poolFeet / mode.cost) : poolFeet;
+}
+
 // Feet still available this turn before the planned route.
 function routeAvailable(token) {
   return Math.max(0, token.eco.limit - token.eco.moved);
@@ -37593,6 +38508,7 @@ function routeConfirm() {
   const stops = route.stops.map(function (stop) { return [stop.x, stop.y]; });
   // Show it on this screen right away; the host answers with the real position. A refused route puts it back (undoRefusedMove).
   moveRevert = { id: token.id, x: token.x, y: token.y };
+  if (typeof walkHints !== "undefined") walkHints[token.id] = { from: { x: token.x, y: token.y }, stops: stops.map(function (stop) { return [stop[0], stop[1]]; }) };
   token.x = last.x;
   token.y = last.y;
   if (typeof gfxForget === "function") gfxForget(["tokens"]);
@@ -37685,7 +38601,7 @@ function routeUpdateBar() {
   }
   const total = route.stops[route.stops.length - 1].total;
   const left = routeAvailable(token) - total;
-  byId("routeText").textContent = "Planned move: " + total + " ft (" + route.stops.length + (route.stops.length === 1 ? " stop" : " stops") + "), " + left + " ft left after it. Tap squares to add stops.";
+  byId("routeText").textContent = "Planned move: " + routeShown(token, total) + " ft (" + route.stops.length + (route.stops.length === 1 ? " stop" : " stops") + "), " + routeShown(token, left) + " ft left after it. Tap squares to add stops.";
 }
 
 // The planned route on the map: a line through the stops with the distance so far at each, and the token's ghost at the end.
@@ -37701,7 +38617,7 @@ function drawRoute(cell) {
   if (route && route.id === mover.id) {
     for (const stop of route.stops) {
       points.push({ x: stop.x, y: stop.y });
-      labels.push(stop.total);
+      labels.push(routeShown(mover, stop.total));
     }
   }
   let preview = null;
@@ -37709,7 +38625,7 @@ function drawRoute(cell) {
     const here = routeHere(dragging);
     if (drag.x !== here.x || drag.y !== here.y) {
       const total = here.total + routeLegFeet(dragging, here.x, here.y, drag.x, drag.y);
-      preview = { x: drag.x, y: drag.y, total: total, over: total > routeAvailable(dragging) };
+      preview = { x: drag.x, y: drag.y, total: routeShown(dragging, total), over: total > routeAvailable(dragging) };
     }
   }
   if (points.length < 2 && !preview) return;
@@ -38727,20 +39643,29 @@ function lvlRenderHp(card, token, step) {
   if (typeof step.rolled === "number") card.appendChild(charEl("div", "muted small", "Your roll is " + step.rolled + "."));
 }
 
-// Subclasses as cards: an emblem (the subclass's initials in a ring), the name and the full text. The chosen one is green.
+// Subclasses as cards: an emblem (the subclass's initials in a ring), the name and a short line, with the full description (every feature,
+// by level) in a drop-down like the other menus. A Choose button picks it; the chosen one is green.
 function lvlRenderSubclass(card, token, step) {
   const grid = charEl("div", "subclassGrid");
   for (const option of step.options) {
     const picked = step.answer === option.id;
-    const tile = charEl("button", "subclassCard" + (picked ? " picked" : ""));
-    tile.type = "button";
-    tile.setAttribute("aria-pressed", picked ? "true" : "false");
+    const tile = charEl("div", "subclassCard" + (picked ? " picked" : ""));
     const initials = option.name.split(/\s+/).filter(function (word) { return /^[A-Z]/.test(word) && ["Of", "The"].indexOf(word) === -1; }).map(function (word) { return word.charAt(0); }).join("").slice(0, 2) || option.name.charAt(0);
-    const emblem = charEl("div", "subclassEmblem", initials);
-    tile.appendChild(emblem);
+    tile.appendChild(charEl("div", "subclassEmblem", initials));
     tile.appendChild(charEl("div", "subclassName", option.name + (picked ? "  \u2713" : "")));
     if (option.text) tile.appendChild(charEl("div", "subclassText", option.text));
-    tile.addEventListener("click", function () { lvlSend(token, step, option.id); });
+    if (Array.isArray(option.features) && option.features.length > 0) {
+      const details = charEl("details", "subclassDetails");
+      details.appendChild(charEl("summary", "", "Full description"));
+      for (const feature of option.features) {
+        details.appendChild(charEl("div", "subclassFeatureName", feature.name + (feature.level ? " (level " + feature.level + ")" : "")));
+        if (feature.text) details.appendChild(charEl("div", "subclassText", feature.text));
+      }
+      tile.appendChild(details);
+    }
+    const choose = charButton(picked ? "Chosen" : "Choose " + option.name, function () { lvlSend(token, step, option.id); }, picked ? "" : "primary");
+    choose.setAttribute("aria-pressed", picked ? "true" : "false");
+    tile.appendChild(choose);
     grid.appendChild(tile);
   }
   card.appendChild(grid);
@@ -39366,11 +40291,22 @@ function renderLevelUpSetup(body, token, character) {
     skipRow.insertBefore(skipBox, skipRow.firstChild);
     body.appendChild(skipRow);
   }
+  // "Level to": take the character to this level in one go, one level up at a time (a level 11 Sorcerer).
+  const targetRow = charEl("label", "checkRow", " Take it up to level ");
+  const target = charEl("input");
+  target.type = "number";
+  target.min = "1";
+  target.max = "20";
+  target.value = "";
+  target.placeholder = "next";
+  targetRow.appendChild(target);
   row.appendChild(charButton(character ? "Start level up" : "Start character", function () {
-    send({ type: "levelUpStart", tokenId: token.id, classId: select.value, abilities: rollBox && rollBox.checked ? "roll" : "", equipment: equipBox && equipBox.checked ? "start" : "", origin: skipBox && skipBox.checked ? "skip" : "" });
+    send({ type: "levelUpStart", tokenId: token.id, classId: select.value, targetLevel: target.value === "" ? 0 : Number(target.value), abilities: rollBox && rollBox.checked ? "roll" : "", equipment: equipBox && equipBox.checked ? "start" : "", origin: skipBox && skipBox.checked ? "skip" : "" });
     charTab = "levelup";
   }, "primary"));
   body.appendChild(row);
+  body.appendChild(targetRow);
+  body.appendChild(charEl("div", "muted small", "Leave the level empty for one level. With a level typed (say 11), the player is walked through every level up to it, one after the other, with all the choices of each."));
   body.appendChild(charEl("div", "muted small", character
     ? "The player is walked through every choice for the new level. Nothing changes until they finish (or you override)."
     : "Starts level 1 and asks the player for their first choices (spells, modules and so on). With the box ticked the player rolls and assigns ability scores; untick it if you set the scores on the stat block yourself."));
@@ -39952,23 +40888,24 @@ function renderSoulCard(token, character, soul) {
   const label = soul.name + " — " + soul.templateName + ", Tier " + soul.tier + " — " + soul.status + " — " + soul.hp + "/" + soul.maxHp + " HP";
   card.appendChild(charEl("summary", "", label));
 
-  const actions = charEl("div", "fieldRow");
-  const canSummon = soul.status === "bound";
-  const summon = charButton("Summon", function () { soulStartPlacing(token, soul); }, canSummon ? "primary" : "");
-  summon.disabled = !canSummon;
-  summon.title = "Bonus Action, 1 Soul Charge, an open tile within " + info.summonRangeFeet + " feet";
-  actions.appendChild(summon);
+  // R24: only the buttons that can be used now are shown.
+  const actions = charEl("div", "fieldRow soulActions");
+  if (soul.status === "bound") {
+    const summon = charButton("Summon", function () { soulStartPlacing(token, soul); }, "primary");
+    summon.title = "Bonus Action, 1 Soul Charge, an open tile within " + info.summonRangeFeet + " feet";
+    actions.appendChild(summon);
+  }
   if (info.imbueLimit > 0) {
     if (soul.status === "imbued") {
       actions.appendChild(charButton("Remove imbue", function () { send({ type: "soulImbue", tokenId: token.id, soulId: soul.id, on: false }); }));
-    } else {
+    } else if (soul.status === "bound") {
       const imbue = charButton("Imbue", function () { send({ type: "soulImbue", tokenId: token.id, soulId: soul.id, on: true }); });
-      imbue.disabled = soul.status !== "bound";
       imbue.title = info.ready || view.you.isDm ? "Gain this soul's Vessel Benefit until your next rest" : "Souls are imbued when the DM opens a rest";
       actions.appendChild(imbue);
     }
   }
-  if (soul.status === "bound" || soul.status === "defeated" || soul.status === "manifested") {
+  // Rekindle heals a soul that is hurt or defeated; a soul at full health has nothing to rekindle.
+  if (soul.status === "defeated" || ((soul.status === "bound" || soul.status === "manifested") && soul.hp < soul.maxHp)) {
     const rekindle = charButton("Rekindle", function () { send({ type: "soulRekindle", tokenId: token.id, soulId: soul.id }); });
     rekindle.title = "After casting Rekindle the Spirit: heal 4d8 + Charisma; a defeated soul can be manifested again";
     actions.appendChild(rekindle);
@@ -40925,6 +41862,226 @@ CHAR_EXTRA_TABS.push({
 
 </script>
   <script>
+// ---------------------------------------------------------------
+// Campaign wiki window (R30): a searchable list of pages and the page being read. The DM can add, edit, hide and delete pages and
+// load the pages kept in the DM folder's wiki folder. "Pop out" opens the same wiki in its own window (it follows the table).
+// ---------------------------------------------------------------
+
+let wikiSelected = null;     // page id being read
+let wikiEditing = false;     // the DM is editing the selected page (or a new one)
+let wikiPopWindow = null;
+
+function wikiEl(tag, className, text) {
+  const element = document.createElement(tag);
+  if (className) element.className = className;
+  if (text !== undefined) element.textContent = text;
+  return element;
+}
+
+// Pages whose title or text contains every word typed in the search box, best title match first.
+function wikiMatches(query) {
+  const pages = view && view.wiki ? view.wiki.pages.slice() : [];
+  const words = query.toLowerCase().split(/\s+/).filter(function (word) { return word !== ""; });
+  const found = pages.filter(function (page) {
+    const hay = (page.title + " " + page.text).toLowerCase();
+    return words.every(function (word) { return hay.indexOf(word) !== -1; });
+  });
+  found.sort(function (a, b) {
+    const at = words.some(function (word) { return a.title.toLowerCase().indexOf(word) !== -1; }) ? 0 : 1;
+    const bt = words.some(function (word) { return b.title.toLowerCase().indexOf(word) !== -1; }) ? 0 : 1;
+    return at - bt || a.title.localeCompare(b.title);
+  });
+  return found;
+}
+
+// Plain text with a little structure: lines starting with # are headings, blank lines separate paragraphs.
+function wikiRenderText(container, text) {
+  for (const block of text.split(/\n{2,}/)) {
+    const trimmed = block.trim();
+    if (trimmed === "") continue;
+    const heading = trimmed.match(/^(#{1,3})\s+(.*)$/);
+    if (heading && trimmed.indexOf("\n") === -1) container.appendChild(wikiEl(heading[1].length === 1 ? "h3" : "h4", "", heading[2]));
+    else {
+      const paragraph = wikiEl("p", "wikiText");
+      paragraph.textContent = trimmed.replace(/^#{1,3}\s+/gm, "");
+      container.appendChild(paragraph);
+    }
+  }
+}
+
+function wikiRender() {
+  const modal = byId("wikiModal");
+  if (!modal || modal.classList.contains("hiddenRow") || !view) return;
+  const isDm = view.you.isDm;
+  const matches = wikiMatches(byId("wikiSearch").value);
+  const list = byId("wikiList");
+  list.textContent = "";
+  if (isDm) {
+    const add = wikiEl("button", "primary", "New page");
+    add.type = "button";
+    add.addEventListener("click", function () { wikiSelected = null; wikiEditing = true; wikiRender(); });
+    list.appendChild(add);
+    const load = wikiEl("button", "", "Load wiki folder");
+    load.type = "button";
+    load.title = "Read the .md and .txt files in the wiki folder of the DM folder";
+    load.addEventListener("click", function () { wikiLoadFolder(); });
+    list.appendChild(load);
+  }
+  if (matches.length === 0) list.appendChild(wikiEl("div", "muted small", view.wiki.pages.length === 0 ? "No wiki pages yet." : "Nothing matches that search."));
+  for (const page of matches) {
+    const item = wikiEl("button", "wikiItem" + (page.id === wikiSelected ? " active" : ""), page.title + (page.shared === false ? " (DM only)" : ""));
+    item.type = "button";
+    item.addEventListener("click", function () { wikiSelected = page.id; wikiEditing = false; wikiRender(); });
+    list.appendChild(item);
+  }
+  const pane = byId("wikiPage");
+  pane.textContent = "";
+  const page = view.wiki.pages.find(function (item) { return item.id === wikiSelected; }) || null;
+  if (wikiEditing && isDm) return wikiRenderEditor(pane, page);
+  if (!page) {
+    pane.appendChild(wikiEl("div", "muted", "Pick a page on the left, or search."));
+    return;
+  }
+  pane.appendChild(wikiEl("h3", "", page.title));
+  wikiRenderText(pane, page.text);
+  if (isDm) {
+    const row = wikiEl("div", "buttonRow");
+    const edit = wikiEl("button", "", "Edit");
+    edit.type = "button";
+    edit.addEventListener("click", function () { wikiEditing = true; wikiRender(); });
+    const del = wikiEl("button", "danger", "");
+    del.type = "button";
+    armConfirm(del, "Delete page", function () { send({ type: "wikiDelete", id: page.id }); wikiSelected = null; });
+    row.appendChild(edit);
+    row.appendChild(del);
+    pane.appendChild(row);
+  }
+}
+
+function wikiRenderEditor(pane, page) {
+  const title = wikiEl("input");
+  title.type = "text";
+  title.maxLength = 120;
+  title.placeholder = "Page title";
+  title.value = page ? page.title : "";
+  const text = wikiEl("textarea", "wikiEditor");
+  text.rows = 16;
+  text.placeholder = "Write the page. A line starting with # is a heading; leave a blank line between paragraphs.";
+  text.value = page ? page.text : "";
+  const sharedLabel = wikiEl("label", "");
+  const shared = wikiEl("input");
+  shared.type = "checkbox";
+  shared.checked = page ? page.shared !== false : true;
+  sharedLabel.appendChild(shared);
+  sharedLabel.appendChild(document.createTextNode(" Players can read this page"));
+  const row = wikiEl("div", "buttonRow");
+  const save = wikiEl("button", "primary", "Save page");
+  save.type = "button";
+  save.addEventListener("click", function () {
+    if (title.value.trim() === "") return showStatus("Give the page a title first.");
+    const message = { type: "wikiSave", title: title.value, text: text.value, shared: shared.checked };
+    if (page) message.id = page.id;
+    send(message);
+    wikiEditing = false;
+    wikiWriteFile(page ? page.file : "", title.value, text.value);
+  });
+  const cancel = wikiEl("button", "", "Cancel");
+  cancel.type = "button";
+  cancel.addEventListener("click", function () { wikiEditing = false; wikiRender(); });
+  row.appendChild(save);
+  row.appendChild(cancel);
+  pane.appendChild(title);
+  pane.appendChild(text);
+  pane.appendChild(sharedLabel);
+  pane.appendChild(row);
+}
+
+// ---- The wiki folder inside the DM folder ----
+function wikiFolderHandle() {
+  return typeof dmFolderRoot !== "undefined" && dmFolderRoot ? dmFolderRoot : null;
+}
+
+async function wikiLoadFolder() {
+  const root = wikiFolderHandle();
+  if (!root) return showStatus("Choose the DM folder first (Settings > DM folder).");
+  try {
+    const dir = await root.getDirectoryHandle("wiki", { create: true });
+    const pages = [];
+    for await (const [name, entry] of dir.entries()) {
+      if (entry.kind !== "file" || !/\.(md|txt)$/i.test(name)) continue;
+      const file = await entry.getFile();
+      if (file.size > 400000) continue;
+      const text = await file.text();
+      const first = text.split("\n").find(function (line) { return line.trim() !== ""; }) || "";
+      const heading = first.match(/^#{1,3}\s+(.*)$/);
+      pages.push({ file: name, title: heading ? heading[1].trim() : name.replace(/\.(md|txt)$/i, ""), text: text });
+    }
+    send({ type: "wikiImport", pages: pages });
+    showStatus("Loaded " + pages.length + " wiki file" + (pages.length === 1 ? "" : "s") + " from the wiki folder.");
+  } catch (err) {
+    showStatus("Could not read the wiki folder: " + (err && err.message ? err.message : err));
+  }
+}
+
+// An edited or new page is written to the wiki folder too, so the files stay the master copy.
+async function wikiWriteFile(file, title, text) {
+  const root = wikiFolderHandle();
+  if (!root) return;
+  try {
+    const dir = await root.getDirectoryHandle("wiki", { create: true });
+    const name = file || (title.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "page") + ".md";
+    const handle = await dir.getFileHandle(name, { create: true });
+    const writer = await handle.createWritable();
+    await writer.write(text);
+    await writer.close();
+  } catch (err) { /* the page is still saved in the campaign */ }
+}
+
+// ---- Pop out: the wiki in its own window, rebuilt whenever the table sends a new view ----
+function wikiPopRender() {
+  if (!wikiPopWindow || wikiPopWindow.closed) { wikiPopWindow = null; return; }
+  const doc = wikiPopWindow.document;
+  const query = doc.getElementById("q") ? doc.getElementById("q").value : "";
+  const pages = wikiMatches(query);
+  let html = "<!doctype html><meta charset='utf-8'><title>Campaign wiki</title><style>body{font:15px system-ui;margin:0;background:#1b1c21;color:#e4e1d8}header{position:sticky;top:0;background:#14151a;padding:8px 12px}input{width:60%;padding:6px}main{padding:12px 18px;max-width:46em}h2{color:#e2a54b}p{white-space:pre-wrap;line-height:1.45}</style><header><input id='q' type='search' placeholder='Search the wiki'></header><main></main>";
+  if (!doc.getElementById("q")) {
+    doc.open();
+    doc.write(html);
+    doc.close();
+    doc.getElementById("q").addEventListener("input", wikiPopRender);
+  }
+  const main = doc.querySelector("main");
+  main.textContent = "";
+  if (pages.length === 0) main.appendChild(doc.createTextNode("No pages."));
+  for (const page of pages) {
+    const title = doc.createElement("h2");
+    title.textContent = page.title;
+    main.appendChild(title);
+    for (const block of page.text.split(/\n{2,}/)) {
+      if (block.trim() === "") continue;
+      const paragraph = doc.createElement("p");
+      paragraph.textContent = block.trim().replace(/^#{1,3}\s+/gm, "");
+      main.appendChild(paragraph);
+    }
+  }
+}
+
+byId("wikiOpen").addEventListener("click", function () {
+  show(byId("wikiModal"), true);
+  wikiRender();
+});
+byId("wikiClose").addEventListener("click", function () { show(byId("wikiModal"), false); });
+byId("wikiModal").addEventListener("click", function (event) { if (event.target === byId("wikiModal")) show(byId("wikiModal"), false); });
+byId("wikiSearch").addEventListener("input", wikiRender);
+byId("wikiPopOut").addEventListener("click", function () {
+  wikiPopWindow = window.open("", "campaignWiki", "width=640,height=780");
+  if (!wikiPopWindow) return showStatus("The browser blocked the pop-up window. Allow pop-ups for this page and try again.");
+  show(byId("wikiModal"), false);
+  wikiPopRender();
+});
+
+</script>
+  <script>
 // Spell Breaker, Greater Divine Intervention and Memorize Spell: one tab with a section for each feature the character has.
 
 CHAR_EXTRA_TABS.push({
@@ -41660,7 +42817,7 @@ CHAR_CAST_EXTRAS.push(function (token, character, spell, box) {
   const list = Array.isArray(full.variants) ? full.variants : (Array.isArray(full.steps) ? rulesSpellVariants(full) : []);
   if (list.length < 2) return null;
   const row = charEl("div", "fieldRow");
-  row.appendChild(charEl("span", "muted small", "Form "));
+  row.appendChild(charEl("span", "muted small", (full.variantLabel || "Form") + " "));
   const select = charEl("select");
   for (const item of list) {
     const option = charEl("option", "", item.name);
@@ -41913,7 +43070,7 @@ function packsContentReplaced() {
 async function packsReadHandle(handle, prefix, depth, found) {
   for await (const [name, child] of handle.entries()) {
     if (child.kind === "directory") {
-      if (depth < 2 && name.charAt(0) !== "." && name !== "node_modules") await packsReadHandle(child, prefix + name + "/", depth + 1, found);
+      if (depth < 2 && name.charAt(0) !== "." && name !== "node_modules" && !(depth === 0 && (name === "saves" || name === "wiki"))) await packsReadHandle(child, prefix + name + "/", depth + 1, found);
     } else if (/\.json$/i.test(name)) {
       const file = await child.getFile();
       if (file.size > 80 * 1024 * 1024) continue;
@@ -42501,7 +43658,9 @@ function renderResourceBar() {
   if (!bar) return;
   const token = view ? barToken() : null;
   const character = token ? token.character : null;
-  if (!character || (Object.keys(character.slots).length === 0 && !character.pact && character.pools.length === 0)) {
+  // R1: Action, Bonus Action and Reaction are three symbols at the top of the screen: lit while ready, dark once used.
+  const turnEco = token && token.mine && (token.kind === "player" || (view.you.isDm && view.map.creatureLimits !== false)) ? token.eco : null;
+  if (!character || (Object.keys(character.slots).length === 0 && !character.pact && character.pools.length === 0 && !turnEco)) {
     show(bar, false);
     return;
   }
@@ -42514,7 +43673,28 @@ function renderResourceBar() {
   head.textContent = (resourceBarOpen ? "▾ " : "▸ ") + token.name;
   head.addEventListener("click", function () { resourceBarOpen = !resourceBarOpen; renderResourceBar(); });
   bar.appendChild(head);
+  if (turnEco) {
+    const symbols = document.createElement("span");
+    symbols.className = "barGroup ecoSymbols";
+    const kinds = [["action", "circle", "Action"], ["bonus", "arrow", "Bonus Action"], ["reaction", "diamond", "Reaction"]];
+    for (const kind of kinds) {
+      const used = !!turnEco[kind[0]];
+      const symbol = document.createElement("button");
+      symbol.type = "button";
+      symbol.className = "ecoSymbol" + (used ? " spent" : "");
+      symbol.setAttribute("aria-label", kind[2] + (used ? ": used" : ": ready"));
+      symbol.title = kind[2] + (used ? ": used" : ": ready") + ". Attacks and spells tick this for you; click only to fix it by hand.";
+      const shape = document.createElement("span");
+      shape.className = "rpip " + kind[1] + (used ? " spent" : "");
+      shape.style.setProperty("--pip", kind[0] === "action" ? "#5fd16b" : (kind[0] === "bonus" ? "#f0b43c" : "#5aa9f0"));
+      symbol.appendChild(shape);
+      symbol.addEventListener("click", function () { send({ type: "ecoToggle", tokenId: token.id, kind: kind[0] }); });
+      symbols.appendChild(symbol);
+    }
+    bar.appendChild(symbols);
+  }
   if (!resourceBarOpen) return;
+  if (Object.keys(character.slots).length === 0 && !character.pact && character.pools.length === 0) return;
 
   // Slots take the look of the class that casts: the first class with spells, else the first class.
   const casters = Object.keys(character.spells || {});
@@ -42603,10 +43783,24 @@ function renderDeathBar() {
   marks("Saves", death.s, "#4caf50");
   marks("Fails", death.f, "#e03a2f");
   if (!death.dead && !death.stable) {
+    const how = document.createElement("div");
+    how.className = "muted small";
+    how.style.flexBasis = "100%";
+    how.textContent = "Down and Prone: nobody can stand you up. Healing (a spell, potion or Lay on Hands) brings you back with those hit points, still Prone; you then spend half your Speed to stand. A friend next to you can use an Action to stabilise you (a DC 10 Medicine check).";
+    bar.appendChild(how);
+  }
+  if (!death.dead && !death.stable && !view.you.isDm) {
+    // Players do not roll: the save is made for them at the start of their turn, and a hit adds a failure.
+    const note = document.createElement("span");
+    note.className = "muted small";
+    note.textContent = "Death saves roll by themselves at the start of your turn.";
+    bar.appendChild(note);
+  }
+  if (!death.dead && !death.stable && view.you.isDm) {
     const roll = document.createElement("button");
     roll.type = "button";
     roll.className = "primary";
-    roll.textContent = "Roll death save";
+    roll.textContent = "DM: roll a death save";
     roll.addEventListener("click", function () { send({ type: "deathRoll", id: token.id }); });
     bar.appendChild(roll);
   }
@@ -42741,6 +43935,7 @@ function renderCharEquipment(body, token, character) {
         if (entry.magic.plus) head.appendChild(charEl("span", "equippedTag", "+" + entry.magic.plus));
       }
       if (entry.text) box.appendChild(charEl("div", "muted small", entry.text));
+      if (view.you.isDm && entry.value > 0) box.appendChild(charEl("div", "muted small", "Value " + entry.value + " gp each (DM only)"));
       if (entry.magic && entry.magic.text) {
         const details = charEl("details");
         details.appendChild(charEl("summary", "muted small", "Description"));
@@ -42773,6 +43968,7 @@ function renderCharEquipment(body, token, character) {
           row.appendChild(typeSelect);
         }
         row.appendChild(charButton("Use (Bonus Action)", function () { send2({ type: "useItem", uid: entry.uid, damageType: typeSelect ? typeSelect.value : undefined }); }));
+        row.appendChild(charButton("Throw (Action)", function () { startThrowItem(charTokenId, entry.uid, typeSelect ? typeSelect.value : undefined); }));
       }
       if (entry.curseHeld && view.you.isDm) row.appendChild(charButton("Break curse", function () { send2({ type: "breakCurse", uid: entry.uid }); }));
       if (entry.magic && entry.magic.attune) {
