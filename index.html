@@ -202,6 +202,11 @@ label.checkRow input { width: 18px; height: 18px; }
 /* Quick game clock (DM), in the bottom-left row after the zoom buttons */
 #clockBar { display: flex; align-items: center; gap: 4px; margin-left: 6px; padding: 0 6px; background: #22242ae6; border: 1px solid #3a3d46; border-radius: 10px; }
 #clockBar.hiddenRow { display: none; }
+/* Quick bars tuck away to the left: only their tuck button stays (it turns to › to bring the bar back). */
+.barTuck { min-width: 28px; padding: 0 6px; }
+#zoomButtons #clockBar button.barTuck { padding: 0 6px; }
+#mapTools.tucked > :not(.barTuck), #clockBar.tucked > :not(.barTuck) { display: none !important; }
+#mapTools.tucked, #clockBar.tucked { padding-right: 6px; }
 #clockBarText { font-size: 14px; font-variant-numeric: tabular-nums; padding: 0 4px; white-space: nowrap; }
 #zoomButtons #clockBar button { height: 34px; padding: 0 8px; }
 #zoomButtons { flex-wrap: wrap; max-width: calc(100% - 24px); }
@@ -1863,6 +1868,7 @@ body.theme-necromancer {
         <button id="rulerToggle" type="button" class="textButton" title="Measure a distance: drag from one square to another">Ruler</button>
         <!-- Quick game clock (DM): the time, and one tap to move it on. Moving it on ends long effects like the clock in DM tools. -->
         <div id="clockBar" class="dmOnly hiddenRow" role="group" aria-label="Game clock">
+          <button type="button" class="barTuck" aria-expanded="true" title="Tuck the clock away">‹</button>
           <span id="clockBarText" title="Game clock">Day 1, 00:00</span>
           <button type="button" class="textButton clockStep" data-minutes="1" title="Move the clock on 1 minute">+1m</button>
           <button type="button" class="textButton clockStep" data-minutes="10" title="Move the clock on 10 minutes">+10m</button>
@@ -1873,6 +1879,7 @@ body.theme-necromancer {
       </div>
       <div id="tileHint" class="hiddenRow" role="status"></div>
         <div id="mapTools" class="dmOnly hiddenRow" aria-label="Quick painting">
+        <button type="button" class="barTuck" aria-expanded="true" title="Tuck the quick tools away">‹</button>
         <span class="muted small">Fog</span>
         <button id="qtReveal" type="button" title="Paint to reveal (R)">Reveal</button>
         <button id="qtHide" type="button" title="Paint to hide (H)">Hide</button>
@@ -33629,6 +33636,27 @@ function showAttackKindFields() {
   byId("attackDistanceText").textContent = kind === "attack" && !ranged ? "Reach (ft)" : "Range (ft)";
 }
 byId("attackKind").addEventListener("change", showAttackKindFields);
+
+// The quick bars (fog and painting, game clock) tuck away to the left and come back with the same button; each remembers its choice
+// on this screen.
+for (const tuck of document.querySelectorAll(".barTuck")) {
+  const bar = tuck.parentNode;
+  const key = "ct_tuck_" + bar.id;
+  const apply = function (tucked) {
+    bar.classList.toggle("tucked", tucked);
+    tuck.textContent = tucked ? "›" : "‹";
+    tuck.setAttribute("aria-expanded", tucked ? "false" : "true");
+    tuck.title = (tucked ? "Bring back " : "Tuck away ") + (bar.id === "clockBar" ? "the clock" : "the quick tools");
+  };
+  let saved = false;
+  try { saved = localStorage.getItem(key) === "1"; } catch (error) { saved = false; }
+  apply(saved);
+  tuck.addEventListener("click", function () {
+    const tucked = !bar.classList.contains("tucked");
+    apply(tucked);
+    try { localStorage.setItem(key, tucked ? "1" : "0"); } catch (error) { /* this screen will not remember it */ }
+  });
+}
 
 // Quick game clock (DM): each button moves the clock on; "Morning" moves it on to 06:00 the next day (today's, if it is not 06:00 yet).
 for (const button of document.querySelectorAll("#clockBar .clockStep")) {
