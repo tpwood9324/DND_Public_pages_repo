@@ -199,6 +199,12 @@ label.checkRow input { width: 18px; height: 18px; }
 }
 #zoomButtons button { width: 42px; height: 42px; font-size: 20px; }
 #zoomButtons button.textButton { width: auto; font-size: 14px; }
+/* Quick game clock (DM), in the bottom-left row after the zoom buttons */
+#clockBar { display: flex; align-items: center; gap: 4px; margin-left: 6px; padding: 0 6px; background: #22242ae6; border: 1px solid #3a3d46; border-radius: 10px; }
+#clockBar.hiddenRow { display: none; }
+#clockBarText { font-size: 14px; font-variant-numeric: tabular-nums; padding: 0 4px; white-space: nowrap; }
+#zoomButtons #clockBar button { height: 34px; padding: 0 8px; }
+#zoomButtons { flex-wrap: wrap; max-width: calc(100% - 24px); }
 
 #pickBanner {
   position: absolute;
@@ -1855,6 +1861,15 @@ body.theme-necromancer {
         <button id="zoomIn" type="button" aria-label="Zoom in">+</button>
         <button id="zoomFit" type="button" class="textButton">Center</button>
         <button id="rulerToggle" type="button" class="textButton" title="Measure a distance: drag from one square to another">Ruler</button>
+        <!-- Quick game clock (DM): the time, and one tap to move it on. Moving it on ends long effects like the clock in DM tools. -->
+        <div id="clockBar" class="dmOnly hiddenRow" role="group" aria-label="Game clock">
+          <span id="clockBarText" title="Game clock">Day 1, 00:00</span>
+          <button type="button" class="textButton clockStep" data-minutes="1" title="Move the clock on 1 minute">+1m</button>
+          <button type="button" class="textButton clockStep" data-minutes="10" title="Move the clock on 10 minutes">+10m</button>
+          <button type="button" class="textButton clockStep" data-minutes="60" title="Move the clock on 1 hour">+1h</button>
+          <button type="button" class="textButton clockStep" data-minutes="480" title="Move the clock on 8 hours">+8h</button>
+          <button type="button" class="textButton clockStep" data-minutes="morning" title="Move the clock on to 06:00 the next morning">Morning</button>
+        </div>
       </div>
       <div id="tileHint" class="hiddenRow" role="status"></div>
         <div id="mapTools" class="dmOnly hiddenRow" aria-label="Quick painting">
@@ -33614,6 +33629,21 @@ function showAttackKindFields() {
   byId("attackDistanceText").textContent = kind === "attack" && !ranged ? "Reach (ft)" : "Range (ft)";
 }
 byId("attackKind").addEventListener("change", showAttackKindFields);
+
+// Quick game clock (DM): each button moves the clock on; "Morning" moves it on to 06:00 the next day (today's, if it is not 06:00 yet).
+for (const button of document.querySelectorAll("#clockBar .clockStep")) {
+  button.addEventListener("click", function () {
+    if (!view || !view.clock) return;
+    let minutes = Number(button.dataset.minutes);
+    if (button.dataset.minutes === "morning") {
+      const now = view.clock.minutes;
+      const dayStart = Math.floor(now / 1440) * 1440;
+      const target = now < dayStart + 360 ? dayStart + 360 : dayStart + 1440 + 360;
+      minutes = target - now;
+    }
+    if (minutes > 0) send({ type: "clockAdvance", minutes: minutes });
+  });
+}
 byId("attackRangeKind").addEventListener("change", showAttackKindFields);
 
 // Fills the distance fields: reach in squares (melee, saves and effects) or a ranged attack's normal and long range in feet.
@@ -38477,6 +38507,8 @@ function charClockRefresh() {
     queueBox.textContent = "";
     renderLevelRequestQueue(queueBox);
   }
+  const barText = byId("clockBarText");
+  if (barText && view && view.clock) barText.textContent = rulesClockText(view.clock.minutes);
   const text = byId("clockText");
   const button = byId("clockEnforce");
   if (!text || !button || !view || !view.clock) return;
