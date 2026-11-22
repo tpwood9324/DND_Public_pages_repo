@@ -24830,6 +24830,14 @@ function hostZonesForViewer(name, isDm) {
   });
 }
 
+// The last route each token walked: token id -> { from: [x, y], stops: [[x, y], ...] }. Only routes of tokens in the view go out.
+const hostWalkRoutes = {};
+function hostWalkRoutesFor(tokens) {
+  const out = {};
+  for (const token of tokens) if (hostWalkRoutes[token.id]) out[token.id] = hostWalkRoutes[token.id];
+  return out;
+}
+
 function hostBuildView(name, isDm) {
   if (typeof rulesSyncAll === "function") rulesSyncAll();
   if (typeof rulesEquipSync === "function") rulesEquipSync();
@@ -24999,6 +25007,7 @@ function hostBuildView(name, isDm) {
     fx: hostFxForViewer(name, isDm),
     fxNow: Date.now(),   // the host's clock, so a page plays only events that just happened
     tokens: tokens,
+    walks: hostWalkRoutesFor(tokens),
     initiative: {
       entries: entries,
       currentTokenId: currentTokenId,
@@ -25694,6 +25703,9 @@ function hostHandleActionRaw(action, name, isDm) {
     }
     token.x = endX;
     token.y = endY;
+    // The planned stops go out in the view so every screen walks the same route (not kept in saves).
+    if (stops && (endX !== oldX || endY !== oldY)) hostWalkRoutes[token.id] = { from: [oldX, oldY], stops: stops };
+    else delete hostWalkRoutes[token.id];
     if ((token.x !== oldX || token.y !== oldY) && typeof rulesZoneMoved === "function") rulesZoneMoved(token, oldX, oldY, walked);
     if ((token.x !== oldX || token.y !== oldY) && typeof rulesOpportunity === "function") rulesOpportunity(token, oldX, oldY, walked);
     if ((token.x !== oldX || token.y !== oldY) && typeof rulesMountedFollow === "function") rulesMountedFollow(token, oldX, oldY);
@@ -31295,8 +31307,11 @@ function walkTrack() {
     next[token.id] = { x: token.x, y: token.y };
     const before = walkLast[token.id];
     if (!walkOn || document.body.classList.contains("reduceMotion") || !before || (before.x === token.x && before.y === token.y)) { delete walkHints[token.id]; continue; }
-    const hint = walkHints[token.id];
+    let hint = walkHints[token.id];
     delete walkHints[token.id];
+    // Everyone else walks the route the host sent, when it starts where the token was and ends where it is now.
+    const sent = view.walks ? view.walks[token.id] : null;
+    if (!hint && sent && sent.from[0] === before.x && sent.from[1] === before.y) hint = { from: { x: sent.from[0], y: sent.from[1] }, stops: sent.stops };
     if (!hint && token.mine) continue;   // dragged by hand on this screen: it is already where it was dropped
     let path = [{ x: before.x, y: before.y }];
     if (hint && hint.stops.length > 0 && hint.stops[hint.stops.length - 1][0] === token.x && hint.stops[hint.stops.length - 1][1] === token.y) {
@@ -37750,7 +37765,7 @@ function gfxTokens(tile) {
   const layer = GFX.layers.tokens;
   // Same view, same selection, same picks, nothing dragged, nothing moving: the tokens are already right.
   const key = [tile, selectedId, pick ? pickedIds.join(",") : "-", cbMode, Object.keys(picImages).length].join("|");   // a picture arriving redraws its token
-  if (!drag && !gfxAnyGlide() && Object.keys(GFX.tokens).length > 0 && gfxSame("tokens", [view.tokens, view.initiative], key)) return;
+  if (!drag && !gfxAnyGlide() && !gfxAnyWalk() && Object.keys(GFX.tokens).length > 0 && gfxSame("tokens", [view.tokens, view.initiative], key)) return;
   const seen = {};
   const now = performance.now();
   // Riders after everyone else, so a rider sits on top of its mount.
@@ -37785,7 +37800,13 @@ function gfxTokens(tile) {
     }
     // A new square: glide there (a drag follows the pointer at once).
     const dragging = drag && drag.kind === "token" && (drag.id === token.id || (mount && drag.id === mount.id));
-    if (dragging) {
+    // R22 walk animation: follow the route (every stop) instead of gliding straight to the end square.
+    const walking = !dragging && !mount && typeof walkPosition === "function" ? walkPosition(token.id) : null;
+    if (walking) {
+      entry.x = entry.fromX = entry.toX = walking.x;
+      entry.y = entry.fromY = entry.toY = walking.y;
+      entry.start = 0;
+    } else if (dragging) {
       entry.x = entry.fromX = entry.toX = wantX;
       entry.y = entry.fromY = entry.toY = wantY;
       entry.start = 0;
@@ -37997,6 +38018,10 @@ function gfxAnyPulse() {
   return false;
 }
 
+function gfxAnyWalk() {
+  return typeof walkAnim !== "undefined" && Object.keys(walkAnim).length > 0;
+}
+
 function gfxAnyGlide() {
   for (const id of Object.keys(GFX.tokens)) if (GFX.tokens[id].start > 0) return true;
   return false;
@@ -38004,7 +38029,7 @@ function gfxAnyGlide() {
 
 function gfxSomethingMoves() {
   if (gfxCalm()) return gfxEffectsPlaying();
-  return gfxAnyGlide() || gfxAnyPulse() || gfxGroundMoves() || gfxDoorsSwinging() || gfxAreasMove() || gfxFogMoves() || gfxEffectsPlaying();
+  return gfxAnyGlide() || gfxAnyWalk() || gfxAnyPulse() || gfxGroundMoves() || gfxDoorsSwinging() || gfxAreasMove() || gfxFogMoves() || gfxEffectsPlaying();
 }
 
 function gfxWakeIfMoving() {
