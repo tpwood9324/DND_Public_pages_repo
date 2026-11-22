@@ -898,6 +898,31 @@ details.charFeature > summary { overflow-wrap: anywhere; }
 .wikiEditor { width: 100%; box-sizing: border-box; }
 @media (max-width: 640px) { .wikiBody { flex-direction: column; } .wikiList { flex: 0 0 auto; max-height: 30vh; } }
 
+/* ---- Private messages ---- */
+#msgOpen { position: relative; }
+.msgBadge { position: absolute; top: -4px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #d9443b; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+.msgPanel { position: fixed; right: 14px; bottom: 14px; width: 390px; max-width: calc(100vw - 28px); height: 440px; max-height: calc(100vh - 90px); z-index: 60; display: flex; flex-direction: column; background: #1d1f24; color: #e4e1d8; border: 1px solid #454853; border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.45); overflow: hidden; }
+.msgPanel.hiddenRow { display: none; }
+.msgPanel.msgCollapsed { height: auto; }
+.msgPanel.msgCollapsed .msgQueue, .msgPanel.msgCollapsed .msgLog, .msgPanel.msgCollapsed .msgCompose { display: none !important; }
+.msgHead { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #17181d; cursor: default; user-select: none; }
+.msgHead strong { flex: 1; white-space: nowrap; }
+.msgHead select { max-width: 120px; min-width: 0; }
+.msgHead button { padding: 2px 8px; white-space: nowrap; flex: none; }
+.msgHead { cursor: move; }
+.msgHeadCount { color: #f3a39d; font-size: 12px; font-weight: 700; }
+.msgQueue { display: flex; flex-wrap: wrap; gap: 5px; padding: 6px 8px; border-bottom: 1px solid #454853; }
+.msgChip { border-radius: 12px; padding: 2px 9px; font-size: 12px; background: #3a2f1a; color: #f3d9a4; border: 1px solid #e2a54b; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msgChip.active { background: #e2a54b; color: #1b1c21; }
+.msgLog { flex: 1; overflow-y: auto; padding: 8px 10px; }
+.msgBubble { max-width: 82%; margin: 6px 0; padding: 6px 10px; border-radius: 10px; background: #2a2c34; }
+.msgMine { margin-left: auto; background: #2d4a6b; color: #eef4fb; }
+.msgMeta { font-size: 11px; opacity: .75; margin-bottom: 2px; }
+.msgText { white-space: pre-wrap; overflow-wrap: anywhere; }
+.msgEmpty { opacity: .75; font-size: 13px; }
+.msgCompose { display: flex; gap: 6px; padding: 8px; border-top: 1px solid #454853; }
+.msgCompose textarea { flex: 1; resize: none; font: inherit; }
+
 </style>
   <style>
 /* Built by tools/build_theme_font.py. Cinzel (c) The Cinzel Project Authors, SIL Open Font License 1.1. */
@@ -1836,6 +1861,15 @@ body.theme-necromancer {
 .themed .abilityMain { background: var(--gem); color: var(--panel); }
 .themed button.levelDetailToggle { background: none; border: none; box-shadow: none; color: var(--gem); font-family: inherit; font-variant: normal; text-shadow: none; padding: 0; min-height: 0; height: auto; }
 
+/* ---- Private messages window ---- */
+.themed .msgPanel { background: var(--panel-fill); color: var(--text); border: 1px solid var(--edge-soft); }
+.themed .msgHead { background: var(--inset); }
+.themed .msgHead strong { font-family: var(--heading); color: var(--accent); }
+.themed .msgQueue, .themed .msgCompose { border-color: var(--edge-soft); }
+.themed .msgBubble { background: var(--inset); color: var(--text); border: 1px solid var(--edge-soft); }
+.themed .msgMine { background: var(--field); border-color: var(--accent); }
+.themed .msgCompose textarea { background: var(--field); color: var(--text); border: 1px solid var(--edge-soft); }
+
 </style>
 </head>
 <body>
@@ -1881,6 +1915,7 @@ body.theme-necromancer {
       <div id="connectionLabel"></div>
       <button id="groundButton" type="button" class="primary hiddenRow" title="Look at the items lying where your character stands">Items here</button>
       <button id="copyInvite" type="button" class="hiddenRow">Copy invite link</button>
+      <button id="msgOpen" type="button" class="textButton" aria-label="Messages" title="Private messages: players write to the DM, and the DM answers each player"><span class="cbLong">&#9993; Messages</span><span class="cbShort">&#9993;</span><span id="msgBadge" class="msgBadge hiddenRow"></span></button>
       <button id="wikiOpen" type="button" class="textButton" aria-label="Campaign wiki" title="The campaign wiki: notes, lore and rules pages shared by the DM"><span class="cbLong">&#128214; Wiki</span></button>
       <button id="settingsOpen" type="button" class="textButton" aria-label="Settings" title="Theme, text size, colour-blind mode, enhanced graphics, reduce motion and dice sounds for your screen"><span class="cbLong">&#9881; Settings</span><span class="cbShort">&#9881;</span></button>
       <div id="whoLabel"></div>
@@ -20328,6 +20363,99 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
 
 </script>
   <script>
+// ---------------------------------------------------------------
+// Private messages between each player and the DM. Every player has one thread with the DM; nobody else sees it.
+// state.messages = { threads: { "<player name, lower case>": { name, items: [{ id, from: "dm" | "player", text, at }],
+//                    seenDm: <last id the DM has read>, seenPlayer: <last id the player has read> } } }
+// Threads are kept in campaign saves (the whole state is saved) and keep the latest MSG_MAX_PER_THREAD messages.
+// ---------------------------------------------------------------
+
+const MSG_MAX_TEXT = 1000;
+const MSG_MAX_PER_THREAD = 200;
+
+function msgState() {
+  if (!state.messages || typeof state.messages !== "object" || typeof state.messages.threads !== "object" || state.messages.threads === null) {
+    state.messages = { threads: {} };
+  }
+  return state.messages;
+}
+
+// The thread for one player (made on first use). The player's own spelling of the name is kept for display.
+function msgThread(playerName) {
+  const threads = msgState().threads;
+  const key = String(playerName).trim().toLowerCase();
+  if (!threads[key]) threads[key] = { name: String(playerName).trim(), items: [], seenDm: 0, seenPlayer: 0 };
+  return threads[key];
+}
+
+function msgUnread(thread, forDm) {
+  const seen = forDm ? thread.seenDm : thread.seenPlayer;
+  const wanted = forDm ? "player" : "dm";
+  let count = 0;
+  for (const item of thread.items) if (item.from === wanted && item.id > seen) count++;
+  return count;
+}
+
+function msgItemView(item) {
+  return { id: item.id, from: item.from, text: item.text, at: item.at };
+}
+
+// The DM sees every player's thread (one for each registered player, even before anyone writes); a player sees only their own.
+function msgView(name, isDm) {
+  if (isDm) {
+    const threads = [];
+    const names = state.players.map(function (player) { return player.name; });
+    for (const key of Object.keys(msgState().threads)) {
+      const thread = msgState().threads[key];
+      if (!names.some(function (n) { return n.toLowerCase() === key; })) names.push(thread.name);
+    }
+    for (const playerName of names) {
+      const thread = msgState().threads[playerName.toLowerCase()];
+      const items = thread ? thread.items : [];
+      threads.push({
+        name: thread ? thread.name : playerName,
+        unread: thread ? msgUnread(thread, true) : 0,
+        lastAt: items.length > 0 ? items[items.length - 1].at : 0,
+        items: items.map(msgItemView)
+      });
+    }
+    let unread = 0;
+    for (const thread of threads) unread += thread.unread;
+    return { isDm: true, threads: threads, unread: unread };
+  }
+  const thread = msgState().threads[String(name).trim().toLowerCase()];
+  return { isDm: false, items: thread ? thread.items.map(msgItemView) : [], unread: thread ? msgUnread(thread, false) : 0 };
+}
+
+RULES_ACTION_HOOKS.push(function (action, name, isDm) {
+  if (action.type !== "msgSend" && action.type !== "msgRead") return undefined;
+  // The DM writes to (or reads) the player named in the action; a player always to (or from) the DM.
+  let playerName = name;
+  if (isDm) {
+    playerName = cleanText(action.to, 60);
+    if (playerName === "") return "Choose a player to message.";
+    const known = hostFindPlayerIn(state.players, playerName) !== null || !!msgState().threads[playerName.toLowerCase()];
+    if (!known) return "There is no player called " + playerName + ".";
+  }
+  const thread = msgThread(playerName);
+  if (action.type === "msgRead") {
+    const last = thread.items.length > 0 ? thread.items[thread.items.length - 1].id : 0;
+    if (isDm) thread.seenDm = last; else thread.seenPlayer = last;
+    return null;
+  }
+  const text = String(action.text === undefined || action.text === null ? "" : action.text)
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").replace(/\r\n?/g, "\n").trim().slice(0, MSG_MAX_TEXT);
+  if (text === "") return "Write a message first.";
+  const item = { id: state.nextId++, from: isDm ? "dm" : "player", text: text, at: Date.now() };
+  thread.items.push(item);
+  if (thread.items.length > MSG_MAX_PER_THREAD) thread.items.splice(0, thread.items.length - MSG_MAX_PER_THREAD);
+  // Your own message counts as read by you.
+  if (isDm) thread.seenDm = item.id; else thread.seenPlayer = item.id;
+  return null;
+});
+
+</script>
+  <script>
 // Mounted combat (2024 Handbook, Mounted Combat): a willing creature at least one size larger than the rider can be mounted.
 // Mounting or dismounting costs half the rider's Speed. The rider moves with the mount. If the mount is knocked Prone, or the rider is
 // knocked Prone, the rider makes a DC 10 Dexterity save or falls Prone in a space within 5 feet.
@@ -23670,6 +23798,23 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
     </div>
   </div>
 
+  <div id="msgPanel" class="msgPanel hiddenRow" role="dialog" aria-label="Private messages">
+    <div id="msgTitleBar" class="msgHead">
+      <strong id="msgTitle">Messages</strong>
+      <span id="msgHeadCount" class="msgHeadCount"></span>
+      <select id="msgWho" title="Choose the player whose conversation to read and answer"></select>
+      <button id="msgPopOut" type="button" title="Open the messages in their own window">Pop out</button>
+      <button id="msgMin" type="button">&#9662;</button>
+      <button id="msgClose" type="button" title="Close the messages window">&#10005;</button>
+    </div>
+    <div id="msgQueue" class="msgQueue" title="Conversations with unread messages, newest first"></div>
+    <div id="msgLog" class="msgLog"></div>
+    <form id="msgForm" class="msgCompose">
+      <textarea id="msgText" rows="2" maxlength="1000" placeholder="Write a message (Enter sends, Shift+Enter for a new line)"></textarea>
+      <button type="submit" class="primary">Send</button>
+    </form>
+  </div>
+
   <div id="wikiModal" class="modalBack hiddenRow">
     <div class="modalCard wikiCard" role="dialog" aria-label="Campaign wiki">
       <div class="wikiHead">
@@ -25019,6 +25164,7 @@ function hostBuildView(name, isDm) {
     players: players,
     clock: { minutes: state.clock.minutes, enforceRest: state.clock.enforceRest === true },
     wiki: typeof wikiView === "function" ? wikiView(isDm) : { pages: [] },
+    messages: typeof msgView === "function" ? msgView(name, isDm) : { isDm: isDm, threads: [], items: [], unread: 0 },
     xpOff: state.xpOff === true,
     map: {
       imageId: state.map.imageId,
@@ -31480,6 +31626,7 @@ function onNewView() {
   renderAttacks();
   renderParty();
   if (typeof wikiRender === "function") { wikiRender(); wikiPopRender(); }
+  if (typeof msgRender === "function") msgRender();
   renderPlayers();
   renderPick();
   renderRollLog();
@@ -42228,6 +42375,263 @@ byId("wikiPopOut").addEventListener("click", function () {
   if (!wikiPopWindow) return showStatus("The browser blocked the pop-up window. Allow pop-ups for this page and try again.");
   show(byId("wikiModal"), false);
   wikiPopRender();
+});
+
+</script>
+  <script>
+// ---------------------------------------------------------------
+// Private messages window. A player sees their own conversation with the DM. The DM picks a player from the list
+// (or from the queue of unread conversations) and reads and answers that player's conversation. The window floats over
+// the table, can be collapsed to its title bar, and can be popped out into its own window like the wiki.
+// ---------------------------------------------------------------
+
+let msgWho = "";              // DM: the player whose conversation is shown
+let msgCollapsed = false;
+let msgPopWindow = null;
+let msgLastUnread = -1;       // unread count at the last view, to notice new messages
+let msgReadSent = "";         // "<who>:<last id>" already marked as read, so the same read is not sent twice
+
+function msgData() {
+  return view && view.messages ? view.messages : { isDm: false, threads: [], items: [], unread: 0 };
+}
+
+// DM: the conversation shown. Keeps the chosen player; otherwise the newest unread conversation, otherwise the first.
+function msgCurrentThread() {
+  const data = msgData();
+  if (!data.isDm) return null;
+  let thread = data.threads.find(function (item) { return item.name === msgWho; });
+  if (!thread) {
+    const unread = data.threads.filter(function (item) { return item.unread > 0; }).sort(function (a, b) { return b.lastAt - a.lastAt; });
+    thread = unread[0] || data.threads[0] || null;
+    msgWho = thread ? thread.name : "";
+  }
+  return thread;
+}
+
+function msgItems() {
+  const data = msgData();
+  if (!data.isDm) return data.items;
+  const thread = msgCurrentThread();
+  return thread ? thread.items : [];
+}
+
+function msgTime(at) {
+  const date = new Date(at);
+  return String(date.getHours()).padStart(2, "0") + ":" + String(date.getMinutes()).padStart(2, "0");
+}
+
+// The conversation, oldest first, into a log element of the given document.
+function msgFillLog(doc, log) {
+  const data = msgData();
+  const nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+  log.textContent = "";
+  const items = msgItems();
+  if (items.length === 0) {
+    const empty = doc.createElement("p");
+    empty.className = "msgEmpty";
+    empty.textContent = data.isDm
+      ? (msgWho ? "No messages with " + msgWho + " yet." : "No players yet. Add players in the DM panel.")
+      : "Write to the DM here. Nobody else can read these messages.";
+    log.appendChild(empty);
+  }
+  for (const item of items) {
+    const mine = (item.from === "dm") === data.isDm;
+    const bubble = doc.createElement("div");
+    bubble.className = "msgBubble " + (mine ? "msgMine" : "msgTheirs");
+    const who = doc.createElement("div");
+    who.className = "msgMeta";
+    who.textContent = (mine ? "You" : (item.from === "dm" ? "DM" : msgWho)) + " · " + msgTime(item.at);
+    const body = doc.createElement("div");
+    body.className = "msgText";
+    body.textContent = item.text;
+    bubble.appendChild(who);
+    bubble.appendChild(body);
+    log.appendChild(bubble);
+  }
+  if (nearBottom || log.dataset.who !== msgWho) log.scrollTop = log.scrollHeight;
+  log.dataset.who = msgWho;
+}
+
+// DM: the player list, each with its unread count.
+function msgFillSelect(doc, select) {
+  const data = msgData();
+  const threads = data.isDm ? data.threads : [];
+  select.textContent = "";
+  for (const thread of threads) {
+    const option = doc.createElement("option");
+    option.value = thread.name;
+    option.textContent = thread.name + (thread.unread > 0 ? " (" + thread.unread + " new)" : "");
+    select.appendChild(option);
+  }
+  select.value = msgWho;
+}
+
+// DM: the notification queue, the players with unread messages, newest first. Clicking one opens that conversation.
+function msgFillQueue(doc, queue, onPick) {
+  const data = msgData();
+  queue.textContent = "";
+  if (!data.isDm) return;
+  const unread = data.threads.filter(function (item) { return item.unread > 0; }).sort(function (a, b) { return b.lastAt - a.lastAt; });
+  for (const thread of unread) {
+    const chip = doc.createElement("button");
+    chip.type = "button";
+    chip.className = "msgChip" + (thread.name === msgWho ? " active" : "");
+    const last = thread.items[thread.items.length - 1];
+    chip.textContent = thread.name + " (" + thread.unread + ")" + (last ? ": " + last.text.slice(0, 40) + (last.text.length > 40 ? "…" : "") : "");
+    chip.title = "Open the conversation with " + thread.name;
+    chip.addEventListener("click", function () { onPick(thread.name); });
+    queue.appendChild(chip);
+  }
+  queue.style.display = unread.length > 0 ? "" : "none";
+}
+
+function msgSendText(text) {
+  const clean = String(text).trim();
+  if (clean === "") return false;
+  const data = msgData();
+  if (data.isDm && !msgWho) { showStatus("Choose a player to message."); return false; }
+  send(data.isDm ? { type: "msgSend", to: msgWho, text: clean } : { type: "msgSend", text: clean });
+  return true;
+}
+
+// Marks the shown conversation as read when someone is actually looking at it.
+function msgMarkRead() {
+  const data = msgData();
+  const unread = data.isDm ? (msgCurrentThread() ? msgCurrentThread().unread : 0) : data.unread;
+  if (unread === 0) return;
+  const panelOpen = !byId("msgPanel").classList.contains("hiddenRow") && !msgCollapsed;
+  const popOpen = msgPopWindow && !msgPopWindow.closed;
+  if (!panelOpen && !popOpen) return;
+  const items = msgItems();
+  const key = msgWho + ":" + (items.length > 0 ? items[items.length - 1].id : 0);
+  if (key === msgReadSent) return;
+  msgReadSent = key;
+  send(data.isDm ? { type: "msgRead", to: msgWho } : { type: "msgRead" });
+}
+
+function msgRender() {
+  if (!view) return;
+  const data = msgData();
+  const badge = byId("msgBadge");
+  badge.textContent = data.unread > 0 ? String(data.unread) : "";
+  show(badge, data.unread > 0);
+
+  // A new message arrived: say so unless its conversation is already on screen.
+  if (msgLastUnread >= 0 && data.unread > msgLastUnread) {
+    const panelOpen = !byId("msgPanel").classList.contains("hiddenRow") && !msgCollapsed;
+    const popOpen = msgPopWindow && !msgPopWindow.closed;
+    let from = "the DM";
+    if (data.isDm) {
+      const newest = data.threads.filter(function (item) { return item.unread > 0; }).sort(function (a, b) { return b.lastAt - a.lastAt; })[0];
+      from = newest ? newest.name : "a player";
+      if (!panelOpen && !popOpen) msgWho = from;
+    }
+    if (!(panelOpen || popOpen) || (data.isDm && from !== msgWho)) showStatus("New message from " + from + ". Open Messages to read it.");
+  }
+  msgLastUnread = data.unread;
+
+  const panel = byId("msgPanel");
+  panel.classList.toggle("msgCollapsed", msgCollapsed);
+  byId("msgMin").textContent = msgCollapsed ? "▴" : "▾";
+  byId("msgMin").title = msgCollapsed ? "Expand the messages window" : "Collapse the messages window to its title bar";
+  show(byId("msgWho"), data.isDm);
+  byId("msgTitle").textContent = data.isDm ? "Messages" : "Messages with the DM";
+  if (!panel.classList.contains("hiddenRow")) {
+    if (data.isDm) {
+      msgCurrentThread();
+      msgFillSelect(document, byId("msgWho"));
+      msgFillQueue(document, byId("msgQueue"), function (who) { msgWho = who; msgCollapsed = false; msgRender(); });
+    } else byId("msgQueue").style.display = "none";
+    if (!msgCollapsed) msgFillLog(document, byId("msgLog"));
+    byId("msgHeadCount").textContent = msgCollapsed && data.unread > 0 ? data.unread + " new" : "";
+  }
+  msgPopRender();
+  msgMarkRead();
+}
+
+// ---- Pop out: the same messenger in its own window ----
+function msgPopRender() {
+  if (!msgPopWindow || msgPopWindow.closed) { msgPopWindow = null; return; }
+  const doc = msgPopWindow.document;
+  const data = msgData();
+  if (!doc.getElementById("log")) {
+    doc.open();
+    doc.write("<!doctype html><meta charset='utf-8'><title>Messages</title><style>" +
+      "body{font:15px system-ui;margin:0;background:#1b1c21;color:#e4e1d8;display:flex;flex-direction:column;height:100vh}" +
+      "header{background:#14151a;padding:8px 10px;display:flex;gap:8px;align-items:center}header strong{flex:1}" +
+      "#queue{display:flex;flex-wrap:wrap;gap:6px;padding:6px 10px;background:#22232a}" +
+      "#queue button{background:#3a2f1a;color:#f3d9a4;border:1px solid #e2a54b;border-radius:12px;padding:3px 9px;cursor:pointer}" +
+      "#log{flex:1;overflow:auto;padding:10px}" +
+      ".msgBubble{max-width:80%;margin:6px 0;padding:6px 10px;border-radius:10px;background:#2a2c34}.msgMine{margin-left:auto;background:#2d4a6b}" +
+      ".msgMeta{font-size:12px;opacity:.7}.msgText{white-space:pre-wrap;overflow-wrap:anywhere}.msgEmpty{opacity:.7}" +
+      "form{display:flex;gap:6px;padding:8px;background:#14151a}textarea{flex:1;resize:none;font:inherit;padding:6px}" +
+      "select,button{font:inherit}</style>" +
+      "<header><strong id='title'>Messages</strong><select id='who'></select></header><div id='queue'></div><div id='log'></div>" +
+      "<form id='form'><textarea id='text' rows='2' maxlength='1000' placeholder='Write a message (Enter sends, Shift+Enter for a new line)'></textarea><button>Send</button></form>");
+    doc.close();
+    const textArea = doc.getElementById("text");
+    doc.getElementById("form").addEventListener("submit", function (event) {
+      event.preventDefault();
+      if (msgSendText(textArea.value)) textArea.value = "";
+    });
+    textArea.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); if (msgSendText(textArea.value)) textArea.value = ""; }
+    });
+    doc.getElementById("who").addEventListener("change", function (event) { msgWho = event.target.value; msgRender(); });
+  }
+  doc.getElementById("title").textContent = data.isDm ? "Messages" : "Messages with the DM";
+  doc.getElementById("who").style.display = data.isDm ? "" : "none";
+  if (data.isDm) {
+    msgCurrentThread();
+    msgFillSelect(doc, doc.getElementById("who"));
+  }
+  msgFillQueue(doc, doc.getElementById("queue"), function (who) { msgWho = who; msgRender(); });
+  if (!data.isDm) doc.getElementById("queue").style.display = "none";
+  msgFillLog(doc, doc.getElementById("log"));
+  msgPopWindow.document.title = (data.unread > 0 ? "(" + data.unread + ") " : "") + "Messages";
+}
+
+byId("msgOpen").addEventListener("click", function () {
+  const panel = byId("msgPanel");
+  const opening = panel.classList.contains("hiddenRow");
+  show(panel, opening);
+  if (opening) { msgCollapsed = false; msgRender(); byId("msgText").focus(); }
+});
+// Drag the window by its title bar to anywhere on the screen (kept for this visit).
+byId("msgTitleBar").addEventListener("pointerdown", function (event) {
+  if (event.target.closest("button, select")) return;
+  const panel = byId("msgPanel");
+  const box = panel.getBoundingClientRect();
+  const dx = event.clientX - box.left, dy = event.clientY - box.top;
+  const move = function (e) {
+    const left = Math.max(0, Math.min(window.innerWidth - box.width, e.clientX - dx));
+    const top = Math.max(0, Math.min(window.innerHeight - 40, e.clientY - dy));
+    panel.style.left = left + "px"; panel.style.top = top + "px"; panel.style.right = "auto"; panel.style.bottom = "auto";
+  };
+  const stop = function () { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", stop); };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", stop);
+});
+byId("msgClose").addEventListener("click", function () { show(byId("msgPanel"), false); });
+byId("msgMin").addEventListener("click", function () { msgCollapsed = !msgCollapsed; msgRender(); });
+byId("msgTitleBar").addEventListener("dblclick", function () { msgCollapsed = !msgCollapsed; msgRender(); });
+byId("msgWho").addEventListener("change", function () { msgWho = byId("msgWho").value; msgRender(); });
+byId("msgForm").addEventListener("submit", function (event) {
+  event.preventDefault();
+  if (msgSendText(byId("msgText").value)) byId("msgText").value = "";
+});
+byId("msgText").addEventListener("keydown", function (event) {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    if (msgSendText(byId("msgText").value)) byId("msgText").value = "";
+  }
+});
+byId("msgPopOut").addEventListener("click", function () {
+  msgPopWindow = window.open("", "campaignMessages", "width=460,height=640");
+  if (!msgPopWindow) return showStatus("The browser blocked the pop-up window. Allow pop-ups for this page and try again.");
+  show(byId("msgPanel"), false);
+  msgPopRender();
+  msgMarkRead();
 });
 
 </script>
