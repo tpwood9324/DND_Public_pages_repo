@@ -31253,6 +31253,8 @@ function undoRefusedMove() {
   if (token) {
     token.x = moveRevert.x;
     token.y = moveRevert.y;
+    delete walkAnim[moveRevert.id];   // the walk started on confirm is cancelled with the move
+    walkLast[moveRevert.id] = { x: moveRevert.x, y: moveRevert.y };
   }
   moveRevert = null;
   if (typeof gfxForget === "function") gfxForget(["tokens"]);   // the token was moved back in place: redraw it
@@ -31305,6 +31307,21 @@ function walkTrack() {
     if (squares > 0 && squares <= 80) walkAnim[token.id] = { path: path, start: now, duration: Math.min(3000, 120 * squares + 80) };
   }
   walkLast = next;
+}
+// The player who confirms a route starts the walk at once, from the old square, without waiting for the host's answer
+// (the token's own position is already the destination on this screen). walkLast is moved to the destination so the
+// host's view does not start a second walk.
+function walkStartNow(id, from, stops) {
+  if (!walkOn || document.body.classList.contains("reduceMotion") || stops.length === 0) return;
+  const path = [{ x: from.x, y: from.y }];
+  for (const stop of stops) path.push({ x: stop[0], y: stop[1] });
+  let squares = 0;
+  for (let i = 1; i < path.length; i++) squares += Math.max(Math.abs(path[i].x - path[i - 1].x), Math.abs(path[i].y - path[i - 1].y));
+  if (squares === 0 || squares > 80) return;
+  walkAnim[id] = { path: path, start: performance.now(), duration: Math.min(3000, 120 * squares + 80) };
+  const last = stops[stops.length - 1];
+  walkLast[id] = { x: last[0], y: last[1] };
+  delete walkHints[id];
 }
 // Where the token is drawn right now: along its walk, or null when it is not walking.
 function walkPosition(id) {
@@ -38543,6 +38560,7 @@ function routeConfirm() {
   // Show it on this screen right away; the host answers with the real position. A refused route puts it back (undoRefusedMove).
   moveRevert = { id: token.id, x: token.x, y: token.y };
   if (typeof walkHints !== "undefined") walkHints[token.id] = { from: { x: token.x, y: token.y }, stops: stops.map(function (stop) { return [stop[0], stop[1]]; }) };
+  if (typeof walkStartNow === "function") walkStartNow(token.id, { x: token.x, y: token.y }, stops);
   token.x = last.x;
   token.y = last.y;
   if (typeof gfxForget === "function") gfxForget(["tokens"]);
