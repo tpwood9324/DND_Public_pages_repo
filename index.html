@@ -37802,10 +37802,12 @@ function gfxTokens(tile) {
     const dragging = drag && drag.kind === "token" && (drag.id === token.id || (mount && drag.id === mount.id));
     // R22 walk animation: follow the route (every stop) instead of gliding straight to the end square.
     const walking = !dragging && !mount && typeof walkPosition === "function" ? walkPosition(token.id) : null;
+    entry.endX = wantX; entry.endY = wantY;   // where the token stands once its walk is over
     if (walking) {
       entry.x = entry.fromX = entry.toX = walking.x;
       entry.y = entry.fromY = entry.toY = walking.y;
       entry.start = 0;
+      entry.walking = true;
     } else if (dragging) {
       entry.x = entry.fromX = entry.toX = wantX;
       entry.y = entry.fromY = entry.toY = wantY;
@@ -38052,6 +38054,19 @@ function gfxAnimate() {
   for (const id of Object.keys(GFX.tokens)) {
     const entry = GFX.tokens[id];
     if (!entry.node) continue;
+    // R22: a walking token is moved along its route every frame; when the walk ends it settles on its square.
+    if (entry.walking) {
+      const walking = typeof walkPosition === "function" ? walkPosition(id) : null;
+      if (walking) {
+        entry.x = entry.fromX = entry.toX = walking.x;
+        entry.y = entry.fromY = entry.toY = walking.y;
+      } else {
+        entry.walking = false;
+        entry.x = entry.fromX = entry.toX = entry.endX;
+        entry.y = entry.fromY = entry.toY = entry.endY;
+      }
+      entry.start = 0;
+    }
     gfxPlace(entry, tile, now);
     for (const child of entry.node.children) {
       if (child.label !== "pulse") continue;
