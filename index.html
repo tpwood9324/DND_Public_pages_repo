@@ -2359,6 +2359,7 @@ body.theme-necromancer {
           <div class="muted small">Rules for the whole table. Players see the result, not these switches.</div>
           <label class="checkRow"><input id="shareHealth" type="checkbox"> Show the party's Hit Points to all players</label>
           <label class="checkRow"><input id="showGround" type="checkbox"> Players see the painted ground drawn on the map (fire, water, ice, hazards), animated like the DM sees it</label>
+          <label class="checkRow"><input id="showWalls" type="checkbox" checked> Players see the painted walls and doors drawn on the map (off: they still block movement and sight, but only the map picture shows them)</label>
           <label class="checkRow"><input id="terrainHints" type="checkbox"> Players see what kind of ground a square is when they hover over it</label>
           <label class="checkRow"><input id="creatureLimits" type="checkbox" checked> Hold creatures to their turn: one Action, Bonus Action and Reaction, and their Speed (you can lift it for one creature's turn on its token panel)</label>
           <label>Level-up hit points
@@ -2656,7 +2657,7 @@ function contentCleanSpell(raw, problems) {
   // Shadow Blade: casting it puts a sword of shadow in the caster's hand. The effect lasts as long as the concentration and the
   // attack list shows a melee attack for it (see the conjured-weapon hook in rules_attacks.js). Applied to any copy of the pack.
   if (id === "shadow_blade" && spell.steps.length === 1 && spell.steps[0].type === "attack") {
-    spell.steps = [{ type: "effect", durationRounds: 10, effect: { name: "Shadow Blade", info: true, conjured: { name: "Shadow Blade", dice: "2d8", type: "psychic", upcast: true, finesse: true, reach: 1, thrown: [20, 60] }, note: "A sword of shadow in your hand: Finesse, Light, Thrown (20/60). Advantage on the attack if you and the target are in dim light or darkness. A thrown blade returns to your hand." } }];
+    spell.steps = [{ type: "effect", to: "self", durationRounds: 10, effect: { name: "Shadow Blade", info: true, conjured: { name: "Shadow Blade", dice: "2d8", type: "psychic", upcast: true, finesse: true, reach: 1, thrown: [20, 60] }, note: "A sword of shadow in your hand: Finesse, Light, Thrown (20/60). Advantage on the attack if you and the target are in dim light or darkness. A thrown blade returns to your hand." } }];
     spell.maxTargets = 0;
   }
   // Spells whose cone is only rolled once when cast leave nothing on the map afterwards (Fear, Dragon's Breath).
@@ -5820,7 +5821,9 @@ function rulesCastSpell(action, name, isDm) {
   if (wordsOfCreation) maxTargets += 1;
   let targetIds = Array.isArray(action.targetIds) ? action.targetIds : [];
   // R14: a spell with no area can be aimed at any square. Whoever stands there is the target.
-  if (!spell.area && targetIds.length === 0 && action.point && Number.isFinite(Number(action.point.x)) && Number.isFinite(Number(action.point.y))) {
+  // Not for spells with no targets, summons (the square is where the creature appears) or teleports (the square is where you go).
+  const aimsAtCreature = maxTargets > 0 && !rulesSpellSpawns(spell) && !spell.steps.some(function (step) { return step.type === "teleport"; });
+  if (aimsAtCreature && !spell.area && targetIds.length === 0 && action.point && Number.isFinite(Number(action.point.x)) && Number.isFinite(Number(action.point.y))) {
     const aimX = Math.floor(Number(action.point.x));
     const aimY = Math.floor(Number(action.point.y));
     const standing = state.tokens.find(function (other) { const t = sizeTiles(other); return other.id !== token.id && aimX >= other.x && aimX < other.x + t && aimY >= other.y && aimY < other.y + t && typeof other.hp === "number"; });
@@ -8213,6 +8216,48 @@ function rulesWallOnPath(token, walked, endX, endY) {
   for (const square of walked) if (check(square[0], square[1])) return token.name + " can't move through a wall.";
   if (check(endX, endY)) return token.name + " can't end its move in a wall.";
   return null;
+}
+
+// One leg of a move (stop to stop) that keeps clear of Wall squares. The usual leg (diagonal first, then straight) is kept when it is
+// clear; otherwise any other path of the same length that avoids walls is used, so a player's stops around a wall are honoured.
+// Returns the squares walked (start excluded, end included), or null when every shortest path is blocked.
+function rulesLegAroundWalls(token, fromX, fromY, toX, toY, usual) {
+  const span = typeof sizeTiles === "function" ? sizeTiles(token) : 1;
+  const solid = function (x, y) {
+    for (let dx = 0; dx < span; dx++) for (let dy = 0; dy < span; dy++) if (rulesWallSolid(rulesWallAt(x + dx, y + dy))) return true;
+    return false;
+  };
+  if (!usual.some(function (sq) { return solid(sq[0], sq[1]); })) return usual;
+  const steps = Math.max(Math.abs(toX - fromX), Math.abs(toY - fromY));
+  if (steps === 0 || steps > 60) return null;
+  // Walk outwards one square per step, keeping only squares from which the end is still exactly the remaining steps away.
+  let layer = [[fromX, fromY]];
+  const back = {};
+  for (let n = 1; n <= steps; n++) {
+    const next = [];
+    const seen = {};
+    for (const at of layer) {
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          if (dx === 0 && dy === 0) continue;
+          const x = at[0] + dx, y = at[1] + dy;
+          const key = x + "," + y;
+          if (seen[key] || x < 0 || y < 0 || x >= gridCols() || y >= gridRows()) continue;
+          if (Math.max(Math.abs(toX - x), Math.abs(toY - y)) !== steps - n) continue;
+          if (solid(x, y)) continue;
+          seen[key] = true;
+          back[n + ":" + key] = at;
+          next.push([x, y]);
+        }
+      }
+    }
+    if (next.length === 0) return null;
+    layer = next;
+  }
+  const path = [];
+  let at = [toX, toY];
+  for (let n = steps; n >= 1; n--) { path.unshift([at[0], at[1]]); at = back[n + ":" + at[0] + "," + at[1]]; }
+  return path;
 }
 
 // Statuses: the cover this creature has right now against the best-placed enemy.
@@ -19040,7 +19085,7 @@ function equipSlotError(character, entry, slot) {
 
 RULES_ACTION_HOOKS.push(function (action, name, isDm) {
   const type = action.type;
-  if (type !== "equip" && type !== "attune" && type !== "useItem" && type !== "toggleItem" && type !== "itemEffect" && type !== "staffCharge" && type !== "itemCharge" && type !== "inventoryAdd" && type !== "inventoryRemove" && type !== "goldSet" && type !== "equipAcAuto" && type !== "breakCurse") return undefined;
+  if (type !== "equip" && type !== "attune" && type !== "useItem" && type !== "toggleItem" && type !== "itemEffect" && type !== "staffCharge" && type !== "itemCharge" && type !== "inventoryAdd" && type !== "inventoryRemove" && type !== "goldSet" && type !== "equipAcAuto" && type !== "breakCurse" && type !== "throwItem") return undefined;
   const token = hostFindToken(action.tokenId);
   if (!token || !token.character) return "That character has no sheet.";
   const character = token.character;
@@ -20259,8 +20304,9 @@ RULES_ACTION_HOOKS.push(function (action, name, isDm) {
       if (file === "" || title === "") continue;
       const text = wikiCleanBody(raw.text, WIKI_MAX_TEXT);
       const existing = wiki.pages.find(function (page) { return page.file === file; });
-      if (existing) { existing.title = title; existing.text = text; }
-      else if (wiki.pages.length < WIKI_MAX_PAGES) wiki.pages.push({ id: state.nextId++, title: title, text: text, shared: true, file: file });
+      const shared = raw.shared !== false;
+      if (existing) { existing.title = title; existing.text = text; existing.shared = shared; }
+      else if (wiki.pages.length < WIKI_MAX_PAGES) wiki.pages.push({ id: state.nextId++, title: title, text: text, shared: shared, file: file });
     }
     return null;
   }
@@ -21056,6 +21102,7 @@ async function dmFolderChoose() {
 let dmFolderAsked = false;
 function dmFolderPrompt() {
   if (dmFolderAsked || role !== "host" || !autosaveFolderSupported()) return;
+  if (navigator.webdriver === true) return;   // automated test browsers: no folder to pick, and the window would block the page
   if (dmFolderRoot && autosaveDirReady) return;
   dmFolderAsked = true;
   const known = !!dmFolderRoot;
@@ -24984,7 +25031,8 @@ function hostBuildView(name, isDm) {
       hpAverage: state.map.hpAverage === true,
       terrainHints: state.map.terrainHints === true,
       creatureLimits: state.map.creatureLimits !== false,
-      showGround: state.map.showGround === true   // players see painted ground drawn (fire, water, ice ...) with its animation
+      showGround: state.map.showGround === true,   // players see painted ground drawn (fire, water, ice ...) with its animation
+      showWalls: state.map.showWalls !== false      // players see the painted walls and doors drawn (they block either way)
     },
     // Players get the fog as a bitmap (decoded on their page); the DM's own view keeps the plain list.
     revealed: isDm ? Object.assign({}, state.revealed) : {},
@@ -25681,7 +25729,9 @@ function hostHandleActionRaw(action, name, isDm) {
       let legX = oldX;
       let legY = oldY;
       for (const stop of (stops || [[endX, endY]])) {
-        for (const square of rulesPathSquares(token, legX, legY, stop[0], stop[1])) route.push(square);
+        const usual = rulesPathSquares(token, legX, legY, stop[0], stop[1]);
+        const clear = typeof rulesLegAroundWalls === "function" ? rulesLegAroundWalls(token, legX, legY, stop[0], stop[1], usual) : usual;
+        for (const square of (clear || usual)) route.push(square);
         legX = stop[0];
         legY = stop[1];
       }
@@ -25696,7 +25746,9 @@ function hostHandleActionRaw(action, name, isDm) {
       let legX = oldX;
       let legY = oldY;
       for (const stop of (stops || [[endX, endY]])) {
-        for (const square of rulesPathSquares(token, legX, legY, stop[0], stop[1])) walked.push(square);
+        const usual = rulesPathSquares(token, legX, legY, stop[0], stop[1]);
+        const clear = !isDm && typeof rulesLegAroundWalls === "function" && rulesWallsAny() ? rulesLegAroundWalls(token, legX, legY, stop[0], stop[1], usual) : null;
+        for (const square of (clear || usual)) walked.push(square);
         legX = stop[0];
         legY = stop[1];
       }
@@ -26604,6 +26656,7 @@ function hostHandleActionRaw(action, name, isDm) {
     if (typeof action.terrainHints === "boolean") state.map.terrainHints = action.terrainHints;
     if (typeof action.creatureLimits === "boolean") state.map.creatureLimits = action.creatureLimits;
     if (typeof action.showGround === "boolean") state.map.showGround = action.showGround;
+    if (typeof action.showWalls === "boolean") state.map.showWalls = action.showWalls;
     return null;
   }
 
@@ -31387,6 +31440,7 @@ function onNewView() {
     byId("terrainHints").checked = view.map.terrainHints === true;
     byId("creatureLimits").checked = view.map.creatureLimits !== false;
     byId("showGround").checked = view.map.showGround === true;
+    byId("showWalls").checked = view.map.showWalls !== false;
     byId("hpMethod").value = view.map.hpAverage === true ? "average" : "roll";
     if (document.activeElement !== byId("cellSize")) byId("cellSize").value = view.map.cellSize;
   }
@@ -32008,6 +32062,7 @@ function drawStripes(x, y, cell) {
 // Walls are solid dark blocks; low walls are a lighter, thinner block (half cover only).
 function drawWalls(cell) {
   if (!view.walls) return;
+  if (!view.you.isDm && view.map.showWalls === false) return;   // Table rules: walls hidden from players (they still block)
   ctx.save();
   for (const key of Object.keys(view.walls)) {
     const parts = key.split(",");
@@ -35744,6 +35799,7 @@ byId("shareHealth").addEventListener("change", sendMapSettings);
 byId("terrainHints").addEventListener("change", function () { send({ type: "tableSettings", terrainHints: byId("terrainHints").checked }); });
 byId("creatureLimits").addEventListener("change", function () { send({ type: "tableSettings", creatureLimits: byId("creatureLimits").checked }); });
 byId("showGround").addEventListener("change", function () { send({ type: "tableSettings", showGround: byId("showGround").checked }); });
+byId("showWalls").addEventListener("change", function () { send({ type: "tableSettings", showWalls: byId("showWalls").checked }); });
 byId("hpMethod").addEventListener("change", function () { send({ type: "tableSettings", hpAverage: byId("hpMethod").value === "average" }); });
 
 // Wall painting modes and the wall kind each paints.
@@ -37164,8 +37220,9 @@ const GFX_DOOR_OPEN_ANGLE = 80;   // degrees an open door stands from its frame
 const GFX_DOOR_SWING_MS = 320;
 
 function gfxWalls(cell) {
-  if (GFX.signs.walls && gfxSame("walls", [view.walls, view.doorTurns], cell + "|" + gfxZoomStep())) return;
-  const walls = view.walls || {};
+  const hidden = !!(view.you && !view.you.isDm && view.map.showWalls === false);   // Table rules: walls hidden from players (they still block)
+  if (GFX.signs.walls && gfxSame("walls", [view.walls, view.doorTurns], cell + "|" + gfxZoomStep() + "|" + hidden)) return;
+  const walls = hidden ? {} : (view.walls || {});
   const turns = view.doorTurns || {};
   const sign = JSON.stringify(walls) + "|" + JSON.stringify(turns) + "|" + cell + "|" + gfxZoomStep();
   if (!gfxLayerChanged("walls", sign)) return;
@@ -42100,13 +42157,14 @@ async function wikiLoadFolder() {
     const dir = await root.getDirectoryHandle("wiki", { create: true });
     const pages = [];
     for await (const [name, entry] of dir.entries()) {
-      if (entry.kind !== "file" || !/\.(md|txt)$/i.test(name)) continue;
+      if (entry.kind !== "file" || !/\.(md|txt)$/i.test(name) || /^readme\./i.test(name)) continue;
       const file = await entry.getFile();
       if (file.size > 400000) continue;
       const text = await file.text();
       const first = text.split("\n").find(function (line) { return line.trim() !== ""; }) || "";
       const heading = first.match(/^#{1,3}\s+(.*)$/);
-      pages.push({ file: name, title: heading ? heading[1].trim() : name.replace(/\.(md|txt)$/i, ""), text: text });
+      // A file whose name starts with "dm-" or "dm_" is a DM-only page; every other page is shared with the players.
+      pages.push({ file: name, title: heading ? heading[1].trim() : name.replace(/\.(md|txt)$/i, ""), text: text, shared: !/^dm[-_]/i.test(name) });
     }
     send({ type: "wikiImport", pages: pages });
     showStatus("Loaded " + pages.length + " wiki file" + (pages.length === 1 ? "" : "s") + " from the wiki folder.");
