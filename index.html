@@ -581,7 +581,6 @@
               </select>
             </label>
           </div>
-          <label class="checkRow"><input id="fogDim" type="checkbox"> Grey out explored squares the characters can't see right now (a remembered look, the same whatever the light; off: they show as when seen, with the light as it is now)</label>
           <button id="fogForget" type="button" title="Automatic fog: forget everything explored, for every player (a new start)">Forget explored</button>
           <div class="buttonRow">
             <button id="fogReveal" type="button">Paint: reveal</button>
@@ -672,6 +671,7 @@
               <option value="subtle">Subtle (the map picture is already dark)</option>
               <option value="full">Full (a daylight map picture; the lights do it all)</option>
             </select></label>
+          <label class="checkRow"><input id="fogDim" type="checkbox"> Automatic fog: grey out explored squares the characters can't see right now (a remembered look, the same whatever the light; off: they show as when seen, with the light as it is now)</label>
           <label class="checkRow">Creatures in the dark
             <select id="darkSight" title="A creature where the characters can't see it (darkness without Darkvision, magical darkness) shows to players as a dark marker the size of its space; a creature that took the Hide action isn't shown until it is found">
               <option value="shared">Party sight: if any character can see it, everyone sees it</option>
